@@ -22,7 +22,5 @@ export class MobileError extends Scene
         const scaleY = this.cameras.main.height / this.background.height;
         const scale = Math.max(scaleX, scaleY); // 使用较大的缩放值确保完全填充
         this.background.setScale(scale);
-        
-        
     }
 }
