@@ -2,6 +2,9 @@ import { Scene } from 'phaser';
 
 export class Preloader extends Scene
 {
+    // is this device a mobile device or a PC
+    public isMobile: boolean;
+    
     // UI元素
     private background: Phaser.GameObjects.Image;
     private loadingText: Phaser.GameObjects.Text;
@@ -42,6 +45,9 @@ export class Preloader extends Scene
 
     init ()
     {
+        /* judge this device a mobile device or a PC */
+        this.isMobile = /Mobile|Android|iOS/i.test(navigator.userAgent);
+        
         console.log('🎬 Preloader scene initialized');
         
         // 获取屏幕中心点
@@ -61,24 +67,31 @@ export class Preloader extends Scene
     preload ()
     {
         console.log('📦 Starting asset loading...');
-        
         // 设置资源路径
         this.load.setPath('assets/');
         
-        // 加载基础UI资源
-        this.loadUIAssets();
-        
-        // 加载游戏资源
-        this.loadGameAssets();
-        
-        // 加载音频资源
-        this.loadAudioAssets();
-        
-        // 加载字体资源
-        this.loadFontAssets();
-        
-        // 设置加载超时
-        this.setupLoadingTimeout();
+        if(this.isMobile) 
+        {
+            /* only preload for the assets of mobile error page */
+            this.load.image('mobile-error-background', './mobiles/background.png')
+        } 
+        else 
+        {
+            // 加载基础UI资源
+            this.loadUIAssets();
+
+            // 加载游戏资源
+            this.loadGameAssets();
+
+            // 加载音频资源
+            this.loadAudioAssets();
+
+            // 加载字体资源
+            this.loadFontAssets();
+
+            // 设置加载超时
+            this.setupLoadingTimeout();
+        }
     }
 
     create ()
@@ -1129,16 +1142,17 @@ export class Preloader extends Scene
         this.loadingText.setText('游戏准备完成！');
         this.loadingText.setColor(this.colors.success);
 
+        /* 在PC模式下，自动三秒进入启动界面，在移动设备下显示用户友好型界面 */
         
-        // 添加点击事件
-        this.input.once('pointerdown', () => {
-            this.startMainMenu();
-        });
-        
-        // 自动跳转（3秒后）
-        this.time.delayedCall(3000, () => {
-            this.startMainMenu();
-        });
+        if (this.isMobile) {
+            // 显示移动端用户友好型界面
+            this.startMobileError();
+        } else {
+            // 自动跳转（3秒后）
+            this.time.delayedCall(3000, () => {
+                this.startMainMenu();
+            });
+        }
     }
 
     /**
@@ -1154,5 +1168,13 @@ export class Preloader extends Scene
         this.cameras.main.once('camerafadeoutcomplete', () => {
         this.scene.start('MainMenu');
         });
+    }
+    
+    private startMobileError(): void 
+    {
+
+        this.cameras.main.fadeOut(500, 0, 0, 0);
+        this.scene.start("MobileError");
+        
     }
 }
