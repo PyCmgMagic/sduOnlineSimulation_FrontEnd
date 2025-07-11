@@ -713,6 +713,11 @@ export class Preloader extends Scene
         this.load.image('pure-logo', 'pure-logo.png');
         this.load.image('star', 'star.png');
         
+        // 加载按钮图片 - 使用专业按钮素材
+        this.load.image('button-normal', 'ui/buttons/buttonLong_beige.png');
+        this.load.image('button-pressed', 'ui/buttons/buttonLong_beige_pressed.png');
+        this.load.image('button-star', 'star.png'); // 使用星星作为按钮装饰
+        
         // 加载UI组件
         // this.load.image('button', 'ui/button.png');
         // this.load.image('panel', 'ui/panel.png');
