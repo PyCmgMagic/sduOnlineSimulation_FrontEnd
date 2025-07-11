@@ -18,6 +18,13 @@ export class Game extends Scene
         this.camera.setBackgroundColor(0x00ff00);
 
         this.background = this.add.image(512, 384, 'background');
+        
+        // 确保背景图片填充整个屏幕
+        const scaleX = this.cameras.main.width / this.background.width;
+        const scaleY = this.cameras.main.height / this.background.height;
+        const scale = Math.max(scaleX, scaleY); // 使用较大的缩放值确保完全填充
+        this.background.setScale(scale);
+        
         this.background.setAlpha(0.5);
 
         this.gameText = this.add.text(512, 384, 'Make something fun!\nand share it with us:\nsupport@phaser.io', {
