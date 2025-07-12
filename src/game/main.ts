@@ -5,6 +5,8 @@ import { MainMenu } from './scenes/MainMenu';
 import { AUTO, Game } from 'phaser';
 import { Preloader } from './scenes/Preloader';
 import { MobileError } from "./scenes/mobiles/MobileError.ts";
+import { ProductGame } from "./scenes/games/ProductGame.ts";
+import { GameEntrance } from "./scenes/GameEntrance.ts";
 
 //  Find out more information about the Game Config at:
 //  https://docs.phaser.io/api-documentation/typedef/types-core#gameconfig
@@ -20,7 +22,9 @@ const config: Phaser.Types.Core.GameConfig = {
         MainMenu,
         MainGame,
         GameOver,
-        MobileError
+        MobileError,
+        ProductGame,
+        GameEntrance,
     ],
     scale: {
         mode: Phaser.Scale.FIT,

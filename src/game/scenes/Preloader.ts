@@ -766,6 +766,11 @@ export class Preloader extends Scene
         // this.load.image('particle', 'effects/particle.png');
         
         console.log('🎮 Game assets queued for loading');
+        
+        /* load assets for product game */
+        this.load.image('game-product-ball', './games/product/ball.png')
+        this.load.image("game-product-background", "./games/product/background.png")
+        
     }
 
     /**
