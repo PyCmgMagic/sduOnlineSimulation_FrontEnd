@@ -30,6 +30,11 @@ export class ProductGame extends Scene
     {
         this.background = CommonFunction.createBackground(this, 514, 384, 'background');
         
+        // 调试：检查资源是否加载
+        console.log('🔍 ProductGame 资源检查:');
+        console.log('game-product-player 存在:', this.textures.exists('game-product-player'));
+        console.log('game-product-platform 存在:', this.textures.exists('game-product-platform'));
+        
         /* init the player */
         this.player = this.physics.add.sprite(514, 348 - 140, 'game-product-player');
         this.player.setCollideWorldBounds(true);
@@ -122,13 +127,19 @@ export class ProductGame extends Scene
         
         if (cursors.left.isDown || key_A.isDown) {
             this.player.setVelocityX(-160)
-            this.player.anims.play('player-move-left', true);
+            if (this.anims.exists('player-move-left')) {
+                this.player.anims.play('player-move-left', true);
+            }
         } else if(cursors.right.isDown || key_D.isDown) {
             this.player.setVelocityX(160)
-            this.player.anims.play('player-move-right', true);
+            if (this.anims.exists('player-move-right')) {
+                this.player.anims.play('player-move-right', true);
+            }
         } else {
             this.player.setVelocityX(0);
-            this.player.anims.play('player-move-turn', true);
+            if (this.anims.exists('player-move-turn')) {
+                this.player.anims.play('player-move-turn', true);
+            }
         }
     }
     
