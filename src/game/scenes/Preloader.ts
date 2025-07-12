@@ -747,35 +747,56 @@ export class Preloader extends Scene
      */
     private loadGameAssets(): void
     {
-        // 加载游戏背景
-        // this.load.image('game-bg', 'backgrounds/game-bg.png');
-        // this.load.image('menu-bg', 'backgrounds/menu-bg.png');
+        // 加载logo
+        this.load.image('logo-white', './pure-logo.png');
+        this.load.image('logo-color', './logo.png');
+
+        // 加载游戏内图标
+        this.load.image('icon-settings', './ui/icons/settings.png');
+        this.load.image('icon-pause', './ui/icons/pause.png');
+        this.load.image('icon-play', './ui/icons/play.png');
+        this.load.image('icon-home', './ui/icons/home.png');
+        this.load.image('icon-sound-on', './ui/icons/sound_on.png');
+        this.load.image('icon-sound-off', './ui/icons/sound_off.png');
         
-        // 加载游戏精灵
-        // this.load.image('student', 'sprites/student.png');
-        // this.load.image('teacher', 'sprites/teacher.png');
-        // this.load.image('building', 'sprites/building.png');
+        // 加载游戏场景背景
+        this.load.image('game-background', './games/background.jpg');
         
-        // 加载精灵表
-        // this.load.spritesheet('student-walk', 'sprites/student-walk.png', {
-        //     frameWidth: 32,
-        //     frameHeight: 32
-        // });
-        
-        // 加载粒子效果
-        // this.load.image('particle', 'effects/particle.png');
-        
-        console.log('🎮 Game assets queued for loading');
-        
-        /* load assets for product game */
-        this.load.image('game-product-ball', './games/product/ball.png')
-        this.load.image("game-product-background", "./games/product/background.png")
-        this.load.spritesheet('game-product-player', './games/product/dude.png', {
+        // 加载精灵/角色
+        this.load.spritesheet('player', './games/player.png', {
             frameWidth: 32,
             frameHeight: 48
-        })
-        this.load.image('game-product-platform', './games/product/platform.png')
+        });
         
+        // 加载地图资源
+        this.load.image('tileset', './games/tileset.png');
+        this.load.tilemapTiledJSON('map', './games/map.json');
+
+        // 加载房屋搭建素材
+        this.load.setPath('assets/Tiles');
+        this.load.image('houseBeige', 'houseBeige.png');
+        this.load.image('houseBeigeBottomLeft', 'houseBeigeBottomLeft.png');
+        this.load.image('houseGray', 'houseGray.png');
+        this.load.image('houseDark', 'houseDark.png');
+        this.load.image('houseBeigeAlt', 'houseBeigeAlt.png');
+        this.load.image('roofRedMid', 'roofRedMid.png');
+        this.load.image('doorOpen', 'doorOpen.png');
+        this.load.image('window', 'window.png');
+        this.load.image('awningRed', 'awningRed.png');
+        this.load.image('signHangingCup', 'signHangingCup.png');
+        this.load.setPath('assets/'); // 恢复资源路径
+
+        // 加载客户雪碧图
+        this.load.setPath('assets/customer');
+        this.load.spritesheet('female-customer', 'female_tilesheet.png', {
+            frameWidth: 80,
+            frameHeight: 110
+        });
+        this.load.spritesheet('player-customer', 'player_tilesheet.png', {
+            frameWidth: 80,
+            frameHeight: 110
+        });
+        this.load.setPath('assets/'); // 恢复资源路径
     }
 
     /**

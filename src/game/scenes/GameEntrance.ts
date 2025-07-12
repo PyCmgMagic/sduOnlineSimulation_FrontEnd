@@ -1,5 +1,5 @@
 import {GameObjects, Scene} from "phaser";
-import {CommonFunction} from "../CommonFunction.ts";
+import {CommonFunction} from "../../utils/CommonFunction.ts";
 
 export class GameEntrance extends Scene{
     

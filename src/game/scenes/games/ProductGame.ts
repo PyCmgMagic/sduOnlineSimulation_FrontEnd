@@ -1,5 +1,5 @@
 import { GameObjects, Scene, Physics, Time } from "phaser";
-import {CommonFunction} from "../../CommonFunction.ts";
+import {CommonFunction} from "../../../utils/CommonFunction.ts";
 import SpriteWithDynamicBody = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 import CursorKeys = Phaser.Types.Input.Keyboard.CursorKeys;
 
