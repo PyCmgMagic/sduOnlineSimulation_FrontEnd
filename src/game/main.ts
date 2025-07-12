@@ -7,6 +7,7 @@ import { Preloader } from './scenes/Preloader';
 import { MobileError } from "./scenes/mobiles/MobileError.ts";
 import { ProductGame } from "./scenes/games/ProductGame.ts";
 import { GameEntrance } from "./scenes/GameEntrance.ts";
+import { PauseMenu } from "./scenes/PauseMenu.ts";
 
 //  Find out more information about the Game Config at:
 //  https://docs.phaser.io/api-documentation/typedef/types-core#gameconfig
@@ -25,10 +26,13 @@ const config: Phaser.Types.Core.GameConfig = {
         MobileError,
         ProductGame,
         GameEntrance,
+        PauseMenu,
     ],
-    scale: {
-        mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH
+    physics: {
+        default: "arcade",
+        arcade: {
+            gravity: { x: 0, y: 80 },
+        }
     }
 };
 

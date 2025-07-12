@@ -770,6 +770,11 @@ export class Preloader extends Scene
         /* load assets for product game */
         this.load.image('game-product-ball', './games/product/ball.png')
         this.load.image("game-product-background", "./games/product/background.png")
+        this.load.spritesheet('game-product-player', './games/product/dude.png', {
+            frameWidth: 32,
+            frameHeight: 48
+        })
+        this.load.image('game-product-platform', './games/product/platform.png')
         
     }
 
