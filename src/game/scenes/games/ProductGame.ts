@@ -15,13 +15,13 @@ export class ProductGame extends Scene
     /* base variable */
     background: GameObjects.Image;
     bottle: GameObjects.Image; // 合成的瓶子区域
-    player: SpriteWithDynamicBody;
+    player: Physics.Matter.Sprite;
     time_use: GameObjects.Text // time use
     time_use_number: number = 0;
     
     /* temp components before assets done */
     graphics : GameObjects.Graphics;
-    platforms: Physics.Arcade.StaticGroup;
+    platforms: MatterJS.BodyType[];
     pause_button: GameObjects.Container;
     
     /* events */
@@ -29,16 +29,30 @@ export class ProductGame extends Scene
     
     /* fruit game logical part */
     FRUITS_TYPES: string[] = ['game-product-fruit1']
-    fruits: Physics.Arcade.Group; // a group of fruits has placed
+    fruits: Physics.Matter.Sprite[] = []; // a group of fruits has placed
     dorpTimer: Time.TimerEvent;
     waitingForDorp: boolean = false;
     previewFruit: SpriteWithDynamicBody | null = null;
-    currentFruit: SpriteWithDynamicBody | null = null;
+    currentFruit: Phaser.Physics.Matter.Sprite | null = null;
     private wasSpaceDown: undefined | boolean = false;
+    private static readonly PLACED_FRUIT_GROUP = 1;
+    private static readonly UNPLACED_FRUIT_GROUP = -2;
     
     constructor() 
     {
-        super("ProductGame");
+        super({
+            key: "ProductGame",
+            physics: {
+                default: "matter",
+                matter: {
+                    gravity: {
+                        y: 0.2,
+                        x: 0
+                    },
+                    debug: true,
+                },
+            },
+        });
     }
     
     init(data: { order: CustomerOrder }) {
@@ -71,9 +85,16 @@ export class ProductGame extends Scene
         this.initPause();
         
         /* init the player */
-        this.player = this.physics.add.sprite(514, 348 - 140, 'game-product-player');
-        this.player.setCollideWorldBounds(true);
-        this.player.setScale(1.3)
+        this.player = this.matter.add.sprite(514, 348 - 140, 'game-product-player', 4, {
+            isStatic: false,
+            friction: 0,
+            collisionFilter: {
+                category: 0x0008,
+                mask: 0x0004
+            }
+        });
+        this.player.setScale(1.3);
+        this.player.setFixedRotation()
         
         /* player move anim */
         this.anims.create({
@@ -105,32 +126,50 @@ export class ProductGame extends Scene
         this.graphics.lineStyle(2, 0x000000, 0.8);
         this.graphics.strokeRect(rectX, rectY, rectWidth, rectHeight);
 
-        /* platform at the upper line of the rectangle */
-        this.platforms = this.physics.add.staticGroup();
-        const platform_down = this.platforms.create(rectX+ rectWidth / 2, rectY, 'game-product-platform');
-        platform_down.setScale(rectWidth / platform_down.width, 2 / platform_down.height).refreshBody();
-        platform_down.visible = false;
+        /* boundary */
+        this.platforms = [
+            this.matter.add.rectangle(rectX, rectY + rectHeight / 2 - 50, 2, rectHeight + 100, {
+                isStatic: true, 
+                label: 'boundary',
+                collisionFilter: {
+                    category: 0x0004,
+                    mask: 0x0001 | 0x0002 | 0x0008
+                }
+        }),
+            this.matter.add.rectangle(rectX + rectWidth, rectY + rectHeight / 2 - 50, 2, rectHeight + 100, {
+                isStatic: true, 
+                label: 'boundary',
+                collisionFilter: {
+                category: 0x0004,
+                mask: 0x0001 | 0x0002 | 0x0008
+            }    
+        }), 
+            this.matter.add.rectangle(rectX + rectWidth / 2, rectY, rectWidth, 2, {
+                isStatic: true, 
+                label: 'boundary',
+                collisionFilter: {
+                    category: 0x0004,
+                    mask: 0x0001 | 0x0002 | 0x0008
+                }
+            }),
+            this.matter.add.rectangle(rectX + rectWidth / 2, rectY + rectHeight, rectWidth, 2, {
+                isStatic: true, 
+                label: 'boundary',
+                collisionFilter: {
+                    category: 0x0004,
+                    mask: 0x0001 | 0x0002 | 0x0008
+                }
+            })
+        ];
         
-        const platform_left = this.platforms.create(rectX, rectY, 'game-product-platform');
-        platform_left.setScale(2 / platform_left.width, 4).refreshBody();
-        platform_left.visible = false;
-        
-        const platform_right = this.platforms.create(rectX + rectWidth, rectY, 'game-product-platform');
-        platform_right.setScale(2 / platform_right.width, 4).refreshBody();
-        platform_right.visible = false;
         
         /* init the game core logical part */
-        this.fruits = this.physics.add.group({
-            collideWorldBounds: true,
-            bounceY: 0.2,
-            bounceX: 0.2,
-        });
         this.generateNewFruit();
         
         
 
         /* Collision detection */
-        this.physics.add.collider(this.platforms, this.player);
+        this.matter.world.add(this.platforms)
         this.physics.add.collider(this.fruits, this.fruits, this.syntheticFruits, this.isFruitSame, this);
         
         CommonFunction.createButton(this, 120, 90, 'button-normal', 'button-pressed', '完成产品', 10, () => {
@@ -154,20 +193,20 @@ export class ProductGame extends Scene
         const cursors: CursorKeys = this.input.keyboard.createCursorKeys();
         
         if (cursors.left.isDown || this.Key_A?.isDown) {
-            this.player.setVelocityX(-160)
+            this.player.setVelocityX(-2)
             if (this.anims.exists('player-move-left')) {
                 this.player.anims.play('player-move-left', true);
             }
             if (this.currentFruit) {
-                this.currentFruit.setVelocityX(-160)
+                this.currentFruit.setVelocityX(-2)
             }
         } else if(cursors.right.isDown || this.Key_D?.isDown) {
-            this.player.setVelocityX(160)
+            this.player.setVelocityX(2)
             if (this.anims.exists('player-move-right')) {
                 this.player.anims.play('player-move-right', true);
             }
             if (this.currentFruit) {
-                this.currentFruit.setVelocityX(160)
+                this.currentFruit.setVelocityX(2)
             }
         } else {
             this.player.setVelocityX(0);
@@ -227,23 +266,38 @@ export class ProductGame extends Scene
     {
         const randomNumber = Phaser.Math.Between(0,this.FRUITS_TYPES.length - 1)
         const randomType = this.FRUITS_TYPES[randomNumber];
-        this.currentFruit = this.physics.add.sprite(this.player.x, this.player.y + 100, randomType) as SpriteWithDynamicBody;
+        this.currentFruit = this.matter.add.sprite(this.player.x, this.player.y + 100, randomType, undefined, {
+            shape: {
+                type: 'circle',
+                radius: 2000
+            },
+            collisionFilter: {
+                group: ProductGame.UNPLACED_FRUIT_GROUP,
+                category: 0x0001,
+                mask: 0x0001 | 0x0004
+            },
+            restitution: 0.2
+        });
         this.currentFruit.setScale(100 / this.currentFruit.width);
         this.currentFruit.setAlpha(0.5);
         this.currentFruit.setData({ 'level': randomNumber })
-        this.currentFruit.body.setAllowGravity(false);
-        this.currentFruit.setCollideWorldBounds(true)
+        this.currentFruit.setIgnoreGravity(true)
+        this.currentFruit.setFixedRotation()
         
         /* collider detection */
-        this.physics.add.collider(this.platforms, this.currentFruit);
+        this.matter.world.add(this.platforms)
     }
     
     private placeFruits()
     {
         if (this.currentFruit) {
             this.currentFruit.setAlpha(1);
-            this.currentFruit.body.setAllowGravity(true);
-            this.fruits.add(this.currentFruit);
+            this.currentFruit.setIgnoreGravity(false)
+            this.fruits.push(this.currentFruit);
+            this.currentFruit.setCollisionCategory(0x0002)
+            this.currentFruit.setCollisionGroup(ProductGame.PLACED_FRUIT_GROUP)
+            this.currentFruit.setCollidesWith(0x0002 | 0x0004)
+            this.currentFruit.setFriction(0)
             this.currentFruit = null;
             
             this.generateNewFruit();
