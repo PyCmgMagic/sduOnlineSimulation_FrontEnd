@@ -131,14 +131,7 @@ export class Game extends Scene
         playerCustomer.setFlipX(true); // 水平翻转
         playerCustomer.setDepth(2);
         
-        //按钮
-        const buttonX = this.cameras.main.width - 150; // 距离右边150像素
-        const buttonY = this.cameras.main.height - 50; // 距离底部100像素
-        const button = CommonFunction.createButton(this, buttonX, buttonY, 'button-normal', 'button-pressed', '进入游戏', 5, () => {
-            this.startGame();
-        });
-        button.setScale(1.2);
-        button.setDepth(5);
+       
 
         // 创建经营游戏UI
         this.createGameUI();
@@ -163,17 +156,21 @@ export class Game extends Scene
         }
 
         // 开始游戏按钮
+         //按钮
+         const buttonX = this.cameras.main.width - 150; // 距离右边150像素
+         const buttonY = this.cameras.main.height - 50; // 距离底部100像素
         const startGameButton = CommonFunction.createButton(
             this,
-            100,
-            100,
+            buttonX,
+            buttonY,
             'button-normal',
             'button-pressed',
             '🎮 开始营业',
             10,
-            () => this.startBusiness()
+            () => this.startBusiness(),
+            true,
+            0.8
         );
-        startGameButton.setScale(0.8);
 
         // 创建动画 
         this.anims.create({
@@ -226,23 +223,7 @@ export class Game extends Scene
     }
 
     update(time: number, delta: number): void {
-        /*
-        // DDL Countdown Logic - Temporarily disabled as per new requirements
-        this.customerOrders.forEach(order => {
-            if (order.status === 'waiting') {
-                // Assuming 5 seconds in real-time is one "day" in game time
-                order.ddl -= delta / 5000; 
-
-                if (order.ddl <= 0) {
-                    order.ddl = 0;
-                    console.log(`订单 ${order.id} 已超时!`);
-                    this.customerLeavesAngry(order);
-                }
-                // This will be called frequently, so it needs to be efficient
-                this.updateOrderDisplay(order.id);
-            }
-        });
-        */
+ 
     }
 
     /**
@@ -355,13 +336,7 @@ export class Game extends Scene
             loop: true
         });
         
-        // 开始更新耐心值
-        // this.patienceUpdateTimer = this.time.addEvent({ // This timer is no longer used
-        //     delay: 1000, // 每秒更新一次
-        //     callback: this.updateCustomerPatience,
-        //     callbackScope: this,
-        //     loop: true
-        // });
+
         
         // 开始游戏时间计时
         this.time.addEvent({

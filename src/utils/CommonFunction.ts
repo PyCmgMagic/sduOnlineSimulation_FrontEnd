@@ -23,7 +23,8 @@ export class CommonFunction
         text: string,
         depth: number,
         callback: () => void,
-        enableHover: boolean = true // 新增参数，默认启用悬停
+        enableHover: boolean = true, // 新增参数，默认启用悬停
+        scale: number = 1
     ): GameObjects.Container {
         const container: GameObjects.Container = scene.add.container(x, y);
         
@@ -46,6 +47,7 @@ export class CommonFunction
         container.add([buttonBg, buttonText]);
         container.setDepth(depth);
         container.setSize(buttonBg.width * 1.2, buttonBg.height * 1.2);
+        container.setScale(scale);
         
         container.setInteractive();
         
@@ -53,8 +55,8 @@ export class CommonFunction
             container.on('pointerover', () => {
                 scene.tweens.add({
                     targets: container,
-                    scaleX: 1.05,
-                    scaleY: 1.05,
+                    scaleX: scale * 1.05,
+                    scaleY: scale * 1.05,
                     duration: 150,
                     ease: "Power2"
                 })
@@ -63,8 +65,8 @@ export class CommonFunction
             container.on('pointerout', () => {
                 scene.tweens.add({
                     targets: container,
-                    scaleX: 1,
-                    scaleY: 1,
+                    scaleX: scale,
+                    scaleY: scale,
                     duration: 150,
                     ease: "Power2"
                 })    
@@ -83,8 +85,8 @@ export class CommonFunction
             
             scene.tweens.add({
                 targets: container,
-                scaleX: 0.95,
-                scaleY: 0.95,
+                scaleX: scale * 0.95,
+                scaleY: scale * 0.95,
                 duration: 100,
                 ease: 'Power2'
             })
@@ -95,8 +97,8 @@ export class CommonFunction
             
             scene.tweens.add({
                 targets: container,
-                scaleX: 1,
-                scaleY: 1,
+                scaleX: scale,
+                scaleY: scale,
                 duration: 100,
                 ease: 'Power2'
             })
