@@ -2,12 +2,15 @@ import { GameObjects, Scene, Physics, Time } from "phaser";
 import {CommonFunction} from "../../../utils/CommonFunction.ts";
 import SpriteWithDynamicBody = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 import CursorKeys = Phaser.Types.Input.Keyboard.CursorKeys;
-import {CustomerOrder} from "../Game.ts";
 
 export class ProductGame extends Scene 
 {
-    private currentOrder: CustomerOrder;
+    /* const some key keyboard-key */
+    Key_D: Phaser.Input.Keyboard.Key | undefined 
+    Key_A: Phaser.Input.Keyboard.Key | undefined 
+    Key_SPACE: Phaser.Input.Keyboard.Key | undefined ;
     
+    /* base variable */
     background: GameObjects.Image;
     bottle: GameObjects.Image; // 合成的瓶子区域
     player: SpriteWithDynamicBody;
@@ -22,25 +25,43 @@ export class ProductGame extends Scene
     /* events */
     timerEvent: Time.TimerEvent;
     
+    /* fruit game logical part */
+    FRUITS_TYPES: string[] = ['game-product-fruit1']
+    fruits: Physics.Arcade.Group; // a group of fruits has placed
+    dorpTimer: Time.TimerEvent;
+    waitingForDorp: boolean = false;
+    previewFruit: SpriteWithDynamicBody | null = null;
+    currentFruit: SpriteWithDynamicBody | null = null;
+    private wasSpaceDown: undefined | boolean = false;
     
     constructor() 
     {
         super("ProductGame");
     }
-
-    init(data: { order: CustomerOrder }) {
-        this.currentOrder = data.order;
-        console.log('ProductGame received order:', this.currentOrder);
+    
+    preload() {
+        this.load.image('game-product-fruit1', 'assets/games/product/ball.png');
     }
     
     create()
     {
         this.background = CommonFunction.createBackground(this, 514, 384, 'background');
         
-        // 调试：检查资源是否加载
+        /* Check if the assets exist */
         console.log('🔍 ProductGame 资源检查:');
         console.log('game-product-player 存在:', this.textures.exists('game-product-player'));
         console.log('game-product-platform 存在:', this.textures.exists('game-product-platform'));
+        
+        /* init keys */
+        this.Key_D = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D)
+        this.Key_SPACE = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
+        this.Key_A = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.A)
+        
+        /* the timer init */
+        this.initTimer();
+        
+        /* init the pause event */
+        this.initPause();
         
         /* init the player */
         this.player = this.physics.add.sprite(514, 348 - 140, 'game-product-player');
@@ -84,53 +105,27 @@ export class ProductGame extends Scene
         platform_down.visible = false;
         
         const platform_left = this.platforms.create(rectX, rectY, 'game-product-platform');
-        platform_left.setScale(2 / platform_left.width, 2).refreshBody();
+        platform_left.setScale(2 / platform_left.width, 4).refreshBody();
         platform_left.visible = false;
         
         const platform_right = this.platforms.create(rectX + rectWidth, rectY, 'game-product-platform');
-        platform_right.setScale(2 / platform_right.width, 2).refreshBody();
+        platform_right.setScale(2 / platform_right.width, 4).refreshBody();
         platform_right.visible = false;
         
+        /* init the game core logical part */
+        this.fruits = this.physics.add.group({
+            collideWorldBounds: true,
+            bounceY: 0.2,
+            bounceX: 0.2,
+        });
+        this.generateNewFruit();
+        
+        
+
         /* Collision detection */
         this.physics.add.collider(this.platforms, this.player);
+        this.physics.add.collider(this.fruits, this.fruits, this.syntheticFruits, this.isFruitSame, this);
         
-        /* the timer */
-        this.time_use = this.add.text(10, 400, `Time used: \n ${this.time_use_number}`, {
-            fontSize: "24px",
-            color: '#ffffff'
-        });
-        
-        this.timerEvent = this.time.addEvent({
-            delay: 1000,
-            callback: this.incrementTimer,
-            callbackScope: this,
-            loop: true
-        });
-        
-        /* pause */
-        this.pause_button = CommonFunction.createButton(this, 120, 30, 'button-normal', 'button-pressed', 'Pause', 10, () => {
-            this.scene.pause();
-            this.scene.launch('PauseMenu', { callerScene: this.scene.key });
-            this.pause_button.setVisible(false);
-        })
-        
-        this.events.on('resume-game', () => {
-            this.pause_button.setVisible(true);
-        })
-        
-        // Add a complete button
-        CommonFunction.createButton(this, 120, 100, 'button-normal', 'button-pressed', '完成设计', 10, () => {
-            console.log('产品设计完成，返回开发中心');
-            
-            // Find the product_design item in the order and mark it as completed
-            const productDesignTask = this.currentOrder.items.find(item => item.item.id === 'product_design');
-            if (productDesignTask) {
-                productDesignTask.status = 'completed';
-                console.log(`任务 ${productDesignTask.item.name} 已标记为完成`);
-            }
-            
-            this.scene.start('GameEntrance', { order: this.currentOrder });
-        });
     }
     
     update()
@@ -139,33 +134,116 @@ export class ProductGame extends Scene
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
         const cursors: CursorKeys = this.input.keyboard.createCursorKeys();
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-expect-error
-        const key_D = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D)
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-expect-error
-        const key_A = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A)
         
-        if (cursors.left.isDown || key_A.isDown) {
+        if (cursors.left.isDown || this.Key_A?.isDown) {
             this.player.setVelocityX(-160)
             if (this.anims.exists('player-move-left')) {
                 this.player.anims.play('player-move-left', true);
             }
-        } else if(cursors.right.isDown || key_D.isDown) {
+            if (this.currentFruit) {
+                this.currentFruit.setVelocityX(-160)
+            }
+        } else if(cursors.right.isDown || this.Key_D?.isDown) {
             this.player.setVelocityX(160)
             if (this.anims.exists('player-move-right')) {
                 this.player.anims.play('player-move-right', true);
+            }
+            if (this.currentFruit) {
+                this.currentFruit.setVelocityX(160)
             }
         } else {
             this.player.setVelocityX(0);
             if (this.anims.exists('player-move-turn')) {
                 this.player.anims.play('player-move-turn', true);
             }
+            if (this.currentFruit) {
+                this.currentFruit.setVelocityX(0)
+            }
         }
+        
+        const isSpaceDown = this.Key_SPACE?.isDown;
+        if (isSpaceDown && !this.wasSpaceDown && this.currentFruit) {
+            this.placeFruits();
+        }
+        
+        this.wasSpaceDown = isSpaceDown;
+        
     }
     
     private incrementTimer() {
         this.time_use_number++;
         this.time_use.setText(`Time used: \n ${this.time_use_number}`);
+    }
+    
+    private initTimer()
+    {
+        /* the timer */
+        this.time_use = this.add.text(10, 400, `Time used: \n ${this.time_use_number}`, {
+            fontSize: "24px",
+            color: '#ffffff'
+        });
+
+        this.timerEvent = this.time.addEvent({
+            delay: 1000,
+            callback: this.incrementTimer,
+            callbackScope: this,
+            loop: true
+        });
+    }
+    
+    private initPause()
+    {
+        /* pause */
+        this.pause_button = CommonFunction.createButton(this, 120, 30, 'button-normal', 'button-pressed', 'Pause', 10, () => {
+            this.scene.pause();
+            this.scene.launch('PauseMenu', { callerScene: this.scene.key });
+            this.pause_button.setVisible(false);
+        })
+
+        this.events.on('resume-game', () => {
+            this.pause_button.setVisible(true);
+        })
+    }
+    
+    private generateNewFruit()
+    {
+        const randomNumber = Phaser.Math.Between(0,this.FRUITS_TYPES.length - 1)
+        const randomType = this.FRUITS_TYPES[randomNumber];
+        this.currentFruit = this.physics.add.sprite(this.player.x, this.player.y + 100, randomType) as SpriteWithDynamicBody;
+        this.currentFruit.setScale(100 / this.currentFruit.width);
+        this.currentFruit.setAlpha(0.5);
+        this.currentFruit.setData({ 'level': randomNumber })
+        this.currentFruit.body.setAllowGravity(false);
+        this.currentFruit.setCollideWorldBounds(true)
+        
+        /* collider detection */
+        this.physics.add.collider(this.platforms, this.currentFruit);
+    }
+    
+    private placeFruits()
+    {
+        if (this.currentFruit) {
+            this.currentFruit.setAlpha(1);
+            this.currentFruit.body.setAllowGravity(true);
+            this.fruits.add(this.currentFruit);
+            this.currentFruit = null;
+            
+            this.generateNewFruit();
+        }
+    }
+    
+    private isFruitSame(obj1: Phaser.Physics.Arcade.Body | Phaser.Physics.Arcade.StaticBody | Phaser.Tilemaps.Tile | Phaser.Types.Physics.Arcade.GameObjectWithBody, 
+                        obj2: Phaser.Physics.Arcade.Body | Phaser.Physics.Arcade.StaticBody | Phaser.Tilemaps.Tile | Phaser.Types.Physics.Arcade.GameObjectWithBody,): boolean 
+    {
+        if (!('getData' in obj1 ) || !("getData" in obj2)) {
+            return false;
+        }
+        console.log('fruit same', obj1.getData('level'), obj2.getData('level'))
+        return obj1.getData('level') === obj2.getData('level');
+    }
+    
+    private syntheticFruits(): void {
+        console.log('synthetic fruits');
+        // TODO : 这里需要实现合成的逻辑
     }
 }
