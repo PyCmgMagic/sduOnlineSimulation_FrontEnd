@@ -59,8 +59,8 @@ export class Game extends Scene
     private gameScore: number = 0;
     private gameTime: number = 0;
     private isGameRunning: boolean = false;
-    private customerSpawnTimer: Phaser.Time.TimerEvent;
-    // private patienceUpdateTimer: Phaser.Time.TimerEvent; // This timer is no longer used
+    private customerSpawnTimer: Phaser.Time.TimerEvent | null;
+    private dayTimer: Phaser.Time.TimerEvent | null;
     
     private orderToProcessOnCreate: CustomerOrder | null = null;
     
@@ -72,8 +72,7 @@ export class Game extends Scene
     
     // 顾客名字池
     private customerNames: string[] = [
-        '产品经理(PM)', '项目经理(PM)', '用户代表', '运营团队', '市场部', '老板', '投资人', '技术总监(CTO)',
-        '设计师(UI/UX)', '客服团队', '数据分析师', '销售团队', '合作伙伴A', '合作伙伴B', '天使投资人', '竞争对手'
+      '天使投资人', '李响','抠门的老板'
     ];
 
     constructor ()
@@ -266,14 +265,13 @@ export class Game extends Scene
     private redrawCustomers(): void {
         this.customers.forEach(customer => {
             if (customer.isActive) {
-                const queueX = -50 + (customer.queuePosition * 150);
-                const sprite = this.add.sprite(queueX, 0, 'female-customer', 0);
+                // Correctly calculate the position based on the formula in spawnCustomer
+                const queueX = 200 + customer.queuePosition * 220;
+                const sprite = this.add.sprite(queueX, 550, 'female-customer', 0);
                 sprite.setScale(4.5);
-                sprite.setFlipX(true);
-                sprite.setDepth(20);
+                sprite.setDepth(110);
                 
                 customer.sprite = sprite;
-                this.customerQueue.add(sprite);
             }
         });
     }
@@ -319,13 +317,19 @@ export class Game extends Scene
         
         // 开始生成顾客
         this.customerSpawnTimer = this.time.addEvent({
-            delay: 8000, // 每8秒生成一个顾客
+            delay: 4000, // 每4秒生成一个顾客
             callback: this.spawnCustomer,
             callbackScope: this,
             loop: true
         });
         
-
+        // Start the day timer for DDLs
+        this.dayTimer = this.time.addEvent({
+            delay: 5000, // 5 seconds per day
+            callback: this.updateCustomerPatience,
+            callbackScope: this,
+            loop: true
+        });
         
         // 立即生成第一个顾客
         this.spawnCustomer();
@@ -336,13 +340,18 @@ export class Game extends Scene
      */
     private spawnCustomer(): void {
         if (this.customers.length >= this.maxCustomers) return;
-        
+
+        // The queue is packed from right to left.
+        // The newest customer goes to the leftmost available spot.
+        // Their index in the array determines their final queue position.
+        const newCustomerIndex = this.customers.length;
+        const newQueuePosition = (this.maxCustomers - 1) - newCustomerIndex;
+
+
         const customerName = this.customerNames[Math.floor(Math.random() * this.customerNames.length)];
         const customerId = `customer_${this.customerCounter++}`;
-        
-        // 先来的在右边，后来的在左边
-        const queuePosition = this.maxCustomers - 1 - this.customers.length;
-        const targetX = 200 + queuePosition * 220;
+
+        const targetX = 200 + newQueuePosition * 220;
         const startX = -100; // 从左边屏幕外入场
 
         // 创建顾客精灵
@@ -359,7 +368,7 @@ export class Game extends Scene
             sprite: customerSprite,
             order: order,
             position: { x: targetX, y: 550 },
-            queuePosition: queuePosition,
+            queuePosition: newQueuePosition,
             isActive: true,
             mood: 'neutral'
         };
@@ -527,6 +536,17 @@ export class Game extends Scene
         }
 
         console.log(`准备进入开发小游戏，项目ID: ${order.id}`);
+
+        // Stop timers before leaving the scene
+        if (this.customerSpawnTimer) {
+            this.customerSpawnTimer.destroy();
+            this.customerSpawnTimer = null;
+        }
+        if (this.dayTimer) {
+            this.dayTimer.destroy();
+            this.dayTimer = null;
+        }
+
         // Save state before leaving
         this.saveState();
         
@@ -581,43 +601,59 @@ export class Game extends Scene
         if (customerIndex > -1) {
             const customer = this.customers[customerIndex];
             
-            // Play leaving animation before destroying
+            // Play leaving animation, and only when it's complete, remove the data.
             if (customer.sprite) {
-                const sprite = customer.sprite; // Create a local const to satisfy the linter
+                const sprite = customer.sprite;
                 this.tweens.add({
                     targets: sprite,
                     x: this.cameras.main.width + 200, // Move off-screen to the right
                     duration: 1500,
                     ease: 'Power2',
                     onStart: () => {
-                        sprite.play('female-walk-right'); // Assuming 'walk-right' is the animation key
+                        sprite.play('female-walk-right');
                     },
                     onComplete: () => {
                         sprite.destroy();
+                        this.customers.splice(customerIndex, 1);
+                        this.rearrangeCustomers(); // Rearrange after one leaves
                     }
                 });
+            } else {
+                // If there's no sprite, remove data immediately and rearrange
+                this.customers.splice(customerIndex, 1);
+                this.rearrangeCustomers();
             }
-
-            this.customers.splice(customerIndex, 1);
-            
-            // 重新排列剩余顾客 - 先来的在右边，后来的在左边
-            this.customers.forEach((customer, index) => {
-                const newPosition = this.maxCustomers - 1 - index;
-                customer.queuePosition = newPosition;
-                this.tweens.add({
-                    targets: customer.sprite,
-                    x: 200 + newPosition * 220,
-                    duration: 500,
-                    ease: 'Power2'
-                });
-            });
         }
+    }
+
+    /**
+     * Rearranges the visual position of remaining customers to fill gaps.
+     */
+    private rearrangeCustomers(): void {
+        // After a customer leaves, repack the queue to the right.
+        // The oldest customer (lowest index in array) should be at the rightmost position.
+        this.customers.forEach((customer, index) => {
+            const newQueuePosition = (this.maxCustomers - 1) - index;
+            
+            if (customer.queuePosition !== newQueuePosition) {
+                customer.queuePosition = newQueuePosition;
+                if (customer.sprite) {
+                    this.tweens.add({
+                        targets: customer.sprite,
+                        x: 200 + newQueuePosition * 220,
+                        duration: 800,
+                        ease: 'Power2'
+                    });
+                }
+            }
+        });
     }
 
     /**
      * 更新顾客耐心值
      */
     private updateCustomerPatience(): void {
+        let needsUpdate = false;
         this.customerOrders.forEach(order => {
             if (order.status === 'waiting' || order.status === 'preparing') {
                 order.ddl -= 1; // DDL 每天减少1
@@ -625,11 +661,14 @@ export class Game extends Scene
                 if (order.ddl < 0) {
                     // DDL 超时
                     this.customerLeavesAngry(order);
+                    needsUpdate = true;
                 }
             }
         });
         
-        this.updateOrdersDisplay();
+        if(needsUpdate) {
+            this.updateOrdersDisplay();
+        }
     }
 
     /**
@@ -712,8 +751,19 @@ export class Game extends Scene
         
         // Restart spawning customers
         this.customerSpawnTimer = this.time.addEvent({
-            delay: 8000,
+            delay: 4000,
             callback: this.spawnCustomer,
+            callbackScope: this,
+            loop: true
+        });
+
+        // Restart the day timer
+        if (this.dayTimer) {
+            this.dayTimer.destroy();
+        }
+        this.dayTimer = this.time.addEvent({
+            delay: 5000, // 5 seconds per day
+            callback: this.updateCustomerPatience,
             callbackScope: this,
             loop: true
         });
