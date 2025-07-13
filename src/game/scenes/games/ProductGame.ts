@@ -2,9 +2,11 @@ import { GameObjects, Scene, Physics, Time } from "phaser";
 import {CommonFunction} from "../../../utils/CommonFunction.ts";
 import SpriteWithDynamicBody = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 import CursorKeys = Phaser.Types.Input.Keyboard.CursorKeys;
+import { CustomerOrder } from "../Game.ts";
 
 export class ProductGame extends Scene 
 {
+    private currentOrder: CustomerOrder;
     /* const some key keyboard-key */
     Key_D: Phaser.Input.Keyboard.Key | undefined 
     Key_A: Phaser.Input.Keyboard.Key | undefined 
@@ -39,6 +41,11 @@ export class ProductGame extends Scene
         super("ProductGame");
     }
     
+    init(data: { order: CustomerOrder }) {
+        this.currentOrder = data.order;
+        console.log('ProductGame received order:', this.currentOrder);
+    }
+
     preload() {
         this.load.image('game-product-fruit1', 'assets/games/product/ball.png');
     }
@@ -126,6 +133,17 @@ export class ProductGame extends Scene
         this.physics.add.collider(this.platforms, this.player);
         this.physics.add.collider(this.fruits, this.fruits, this.syntheticFruits, this.isFruitSame, this);
         
+        CommonFunction.createButton(this, 120, 90, 'button-normal', 'button-pressed', '完成产品', 10, () => {
+            console.log('产品开发完成，返回开发中心');
+
+            const task = this.currentOrder.items.find(item => item.item.id === 'product_design');
+            if (task) {
+                task.status = 'completed';
+                console.log(`任务 ${task.item.name} 已标记为完成`);
+            }
+
+            this.scene.start('GameEntrance', { order: this.currentOrder });
+        });
     }
     
     update()

@@ -67,7 +67,6 @@ export class Game extends Scene
     // UI元素
     private ordersPanel: GameObjects.Container;
     private scoreDisplay: GameObjects.Text;
-    private timeDisplay: GameObjects.Text;
     private customerQueue: GameObjects.Container;
     private preparationPanel: GameObjects.Container;
     
@@ -251,16 +250,6 @@ export class Game extends Scene
             strokeThickness: 2
         });
         this.scoreDisplay.setDepth(200);
-
-        // 时间显示
-        this.timeDisplay = this.add.text(20, 60, '⏰ 开发周期: 0天', {
-            fontSize: '20px',
-            color: '#8B4513',
-            fontFamily: 'Arial, SimHei, Microsoft YaHei',
-            stroke: '#FFFFFF',
-            strokeThickness: 2
-        });
-        this.timeDisplay.setDepth(200);
     }
 
     /**
@@ -337,14 +326,6 @@ export class Game extends Scene
         });
         
 
-        
-        // 开始游戏时间计时
-        this.time.addEvent({
-            delay: 1000,
-            callback: this.updateGameTime,
-            callbackScope: this,
-            loop: true
-        });
         
         // 立即生成第一个顾客
         this.spawnCustomer();
@@ -599,9 +580,24 @@ export class Game extends Scene
         const customerIndex = this.customers.findIndex(c => c.id === customerId);
         if (customerIndex > -1) {
             const customer = this.customers[customerIndex];
-            if (customer.sprite) { // Check if sprite exists before destroying
-                customer.sprite.destroy();
+            
+            // Play leaving animation before destroying
+            if (customer.sprite) {
+                const sprite = customer.sprite; // Create a local const to satisfy the linter
+                this.tweens.add({
+                    targets: sprite,
+                    x: this.cameras.main.width + 200, // Move off-screen to the right
+                    duration: 1500,
+                    ease: 'Power2',
+                    onStart: () => {
+                        sprite.play('female-walk-right'); // Assuming 'walk-right' is the animation key
+                    },
+                    onComplete: () => {
+                        sprite.destroy();
+                    }
+                });
             }
+
             this.customers.splice(customerIndex, 1);
             
             // 重新排列剩余顾客 - 先来的在右边，后来的在左边
@@ -665,9 +661,8 @@ export class Game extends Scene
      */
     private updateGameTime(): void {
         this.gameTime++;
-        const minutes = Math.floor(this.gameTime / 60);
-        const seconds = this.gameTime % 60;
-        this.timeDisplay.setText(`⏰ 开发周期: ${this.gameTime}天`);
+        // The display part is removed, but time still needs to tick for game logic.
+        // For example, if DDLs are based on gameTime in the future.
     }
     
     private startGame() {
