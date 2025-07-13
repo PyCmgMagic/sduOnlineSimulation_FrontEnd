@@ -8,6 +8,9 @@ import { MobileError } from "./scenes/mobiles/MobileError.ts";
 import { ProductGame } from "./scenes/games/ProductGame.ts";
 import { GameEntrance } from "./scenes/GameEntrance.ts";
 import { PauseMenu } from "./scenes/PauseMenu.ts";
+import { VisionGame } from "./scenes/games/VisionGame.ts";
+import { FrontEndGame } from "./scenes/games/FrontEndGame.ts";
+import { BackEndGame } from "./scenes/games/BackEndGame.ts";
 
 //  Find out more information about the Game Config at:
 //  https://docs.phaser.io/api-documentation/typedef/types-core#gameconfig
@@ -27,6 +30,9 @@ const config: Phaser.Types.Core.GameConfig = {
         ProductGame,
         GameEntrance,
         PauseMenu,
+        VisionGame,
+        FrontEndGame,
+        BackEndGame,
     ],
     physics: {
         default: "arcade",

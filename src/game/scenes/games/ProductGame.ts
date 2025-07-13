@@ -2,9 +2,11 @@ import { GameObjects, Scene, Physics, Time } from "phaser";
 import {CommonFunction} from "../../../utils/CommonFunction.ts";
 import SpriteWithDynamicBody = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 import CursorKeys = Phaser.Types.Input.Keyboard.CursorKeys;
+import {CustomerOrder} from "../Game.ts";
 
 export class ProductGame extends Scene 
 {
+    private currentOrder: CustomerOrder;
     
     background: GameObjects.Image;
     bottle: GameObjects.Image; // 合成的瓶子区域
@@ -24,6 +26,11 @@ export class ProductGame extends Scene
     constructor() 
     {
         super("ProductGame");
+    }
+
+    init(data: { order: CustomerOrder }) {
+        this.currentOrder = data.order;
+        console.log('ProductGame received order:', this.currentOrder);
     }
     
     create()
@@ -110,6 +117,20 @@ export class ProductGame extends Scene
         this.events.on('resume-game', () => {
             this.pause_button.setVisible(true);
         })
+        
+        // Add a complete button
+        CommonFunction.createButton(this, 120, 100, 'button-normal', 'button-pressed', '完成设计', 10, () => {
+            console.log('产品设计完成，返回开发中心');
+            
+            // Find the product_design item in the order and mark it as completed
+            const productDesignTask = this.currentOrder.items.find(item => item.item.id === 'product_design');
+            if (productDesignTask) {
+                productDesignTask.status = 'completed';
+                console.log(`任务 ${productDesignTask.item.name} 已标记为完成`);
+            }
+            
+            this.scene.start('GameEntrance', { order: this.currentOrder });
+        });
     }
     
     update()

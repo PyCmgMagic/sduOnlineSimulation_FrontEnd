@@ -22,7 +22,8 @@ export class CommonFunction
         key_pressed: string,
         text: string,
         depth: number,
-        callback: () => void
+        callback: () => void,
+        enableHover: boolean = true // 新增参数，默认启用悬停
     ): GameObjects.Container {
         const container: GameObjects.Container = scene.add.container(x, y);
         
@@ -48,32 +49,34 @@ export class CommonFunction
         
         container.setInteractive();
         
-        container.on('pointerover', () => {
-            scene.tweens.add({
-                targets: container,
-                scaleX: 1.05,
-                scaleY: 1.05,
-                duration: 150,
-                ease: "Power2"
+        if (enableHover) { // 根据参数决定是否添加悬停事件
+            container.on('pointerover', () => {
+                scene.tweens.add({
+                    targets: container,
+                    scaleX: 1.05,
+                    scaleY: 1.05,
+                    duration: 150,
+                    ease: "Power2"
+                })
             })
-        })
-        
-        container.on('pointerout', () => {
-            scene.tweens.add({
-                targets: container,
-                scaleX: 1,
-                scaleY: 1,
-                duration: 150,
-                ease: "Power2"
-            })    
             
-            scene.tweens.add({
-                targets: buttonBg,
-                alpha: 1,
-                duration: 200,
-                ease: 'Power2'
+            container.on('pointerout', () => {
+                scene.tweens.add({
+                    targets: container,
+                    scaleX: 1,
+                    scaleY: 1,
+                    duration: 150,
+                    ease: "Power2"
+                })    
+                
+                scene.tweens.add({
+                    targets: buttonBg,
+                    alpha: 1,
+                    duration: 200,
+                    ease: 'Power2'
+                })
             })
-        })
+        }
         
         container.on("pointerdown", () => {
             buttonBg.setTexture(key_pressed);
