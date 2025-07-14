@@ -18,6 +18,7 @@ export class ProductGame extends Scene
     player: Physics.Matter.Sprite;
     time_use: GameObjects.Text // time use
     time_use_number: number = 0;
+    player_move_speed: number = 2;
     
     /* temp components before assets done */
     graphics : GameObjects.Graphics;
@@ -28,7 +29,7 @@ export class ProductGame extends Scene
     timerEvent: Time.TimerEvent;
     
     /* fruit game logical part */
-    FRUITS_TYPES: string[] = ['game-product-fruit1']
+    FRUITS_TYPES: string[] = ['game-product-fruit1', 'game-product-fruit1', 'game-product-fruit1']
     fruits: Physics.Matter.Sprite[] = []; // a group of fruits has placed
     dorpTimer: Time.TimerEvent;
     waitingForDorp: boolean = false;
@@ -170,7 +171,22 @@ export class ProductGame extends Scene
 
         /* Collision detection */
         this.matter.world.add(this.platforms)
-        this.physics.add.collider(this.fruits, this.fruits, this.syntheticFruits, this.isFruitSame, this);
+        // this.physics.add.collider(this.fruits, this.fruits, this.syntheticFruits, this.isFruitSame, this);
+        this.matter.world.on('collisionstart', 
+            (event: Phaser.Physics.Matter.Events.CollisionStartEvent,) => 
+            {
+                event.pairs.forEach(pairs => {
+                    
+                    const bodyA = pairs.bodyA.gameObject as Physics.Matter.Sprite | null;
+                    const bodyB = pairs.bodyB.gameObject as Physics.Matter.Sprite | null;
+
+                    if (bodyA != null && bodyB != null && this.isFruitSame(bodyA, bodyB)) {
+                        console.log('collision started');
+                        this.syntheticFruits(bodyA, bodyB);
+                    }
+                })
+            
+        })
         
         CommonFunction.createButton(this, 120, 90, 'button-normal', 'button-pressed', '完成产品', 10, () => {
             console.log('产品开发完成，返回开发中心');
@@ -193,20 +209,20 @@ export class ProductGame extends Scene
         const cursors: CursorKeys = this.input.keyboard.createCursorKeys();
         
         if (cursors.left.isDown || this.Key_A?.isDown) {
-            this.player.setVelocityX(-2)
+            this.player.setVelocityX(-this.player_move_speed)
             if (this.anims.exists('player-move-left')) {
                 this.player.anims.play('player-move-left', true);
             }
             if (this.currentFruit) {
-                this.currentFruit.setVelocityX(-2)
+                this.currentFruit.setVelocityX(-this.player_move_speed)
             }
         } else if(cursors.right.isDown || this.Key_D?.isDown) {
-            this.player.setVelocityX(2)
+            this.player.setVelocityX(this.player_move_speed)
             if (this.anims.exists('player-move-right')) {
                 this.player.anims.play('player-move-right', true);
             }
             if (this.currentFruit) {
-                this.currentFruit.setVelocityX(2)
+                this.currentFruit.setVelocityX(this.player_move_speed)
             }
         } else {
             this.player.setVelocityX(0);
@@ -269,7 +285,7 @@ export class ProductGame extends Scene
         this.currentFruit = this.matter.add.sprite(this.player.x, this.player.y + 100, randomType, undefined, {
             shape: {
                 type: 'circle',
-                radius: 2000
+                radius: 500 * (randomNumber + 1)
             },
             collisionFilter: {
                 group: ProductGame.UNPLACED_FRUIT_GROUP,
@@ -285,7 +301,7 @@ export class ProductGame extends Scene
         this.currentFruit.setFixedRotation()
         
         /* collider detection */
-        this.matter.world.add(this.platforms)
+        // this.matter.world.add(this.platforms)
     }
     
     private placeFruits()
@@ -304,8 +320,8 @@ export class ProductGame extends Scene
         }
     }
     
-    private isFruitSame(obj1: Phaser.Physics.Arcade.Body | Phaser.Physics.Arcade.StaticBody | Phaser.Tilemaps.Tile | Phaser.Types.Physics.Arcade.GameObjectWithBody, 
-                        obj2: Phaser.Physics.Arcade.Body | Phaser.Physics.Arcade.StaticBody | Phaser.Tilemaps.Tile | Phaser.Types.Physics.Arcade.GameObjectWithBody,): boolean 
+    private isFruitSame(obj1: Physics.Matter.Sprite, 
+                        obj2: Physics.Matter.Sprite,): boolean 
     {
         if (!('getData' in obj1 ) || !("getData" in obj2)) {
             return false;
@@ -314,8 +330,46 @@ export class ProductGame extends Scene
         return obj1.getData('level') === obj2.getData('level');
     }
     
-    private syntheticFruits(): void {
+    private syntheticFruits(obj1: Physics.Matter.Sprite, obj2: Physics.Matter.Sprite): void {
         console.log('synthetic fruits');
-        // TODO : 这里需要实现合成的逻辑
+        const level: number = obj1.getData('level');
+        if (level === this.FRUITS_TYPES.length - 1) {
+            return;
+        } else {
+            const newLevelNumber: number = level + 1;
+            const newFruitType = this.FRUITS_TYPES[newLevelNumber];
+            const x: number = (obj1.x + obj2.x) / 2;
+            const y: number = (obj1.y + obj2.y) / 2;
+            
+            const index1: number = this.fruits.indexOf(obj1);
+            if (index1 > -1) {
+                this.fruits.splice(index1, 1);
+                obj1.destroy();
+            }
+            const index2: number = this.fruits.indexOf(obj2);
+            if (index2 > -1) {
+                this.fruits.splice(index2, 1);
+                obj2.destroy();
+            }
+            
+            const newFruit = this.matter.add.sprite(x, y, newFruitType, undefined, {
+                shape: {
+                    type: 'circle',
+                    radius: 500 * (newLevelNumber + 1)
+                },
+                collisionFilter: {
+                    group: ProductGame.PLACED_FRUIT_GROUP,
+                    category: 0x0002,
+                    mask: 0x0002 | 0x0004
+                },
+                restitution: 0.2
+            });
+            newFruit.setData({
+                'level': newLevelNumber,
+            });
+            newFruit.setFriction(0);
+            newFruit.setScale( 100 / newFruit.width);
+            this.fruits.push(newFruit);
+        }
     }
 }
