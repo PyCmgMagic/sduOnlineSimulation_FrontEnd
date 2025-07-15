@@ -523,4 +523,45 @@ export class CommonFunction
         scene.sound.stopAll();
     }
 
+    // ==================== 随机分布方法 ====================
+    /**
+     * 按照给定的概率分布随机产生实体
+     * @param items - 实体列表
+     * @param probabilities - 对应的概率列表, 总和为1
+     * @returns 随机产生的实体
+     */
+    public static RandomDistribution<T>(items: T[], probabilities: number[]) : T{
+        if (items.length < 1) {
+            throw new Error("items array must have at least one item");
+        }
+        if (items.length != probabilities.length) {
+            throw new Error("items and probabilities arrays must have the same length");
+        }
+        if (probabilities.reduce((sum, p) => sum + p) != 1) {
+            throw new Error("probabilities array must sum up to 1");
+        }
+        for (let i = 0; i < probabilities.length; i++) {
+            if (probabilities[i] <0 || probabilities[i]>1 || isNaN(probabilities[i]) || probabilities[i] == null) {
+                throw new Error(`the ${i} item of the probabilities is not valid`);
+            }
+            if (items[i] == null) {
+                throw new Error(`the ${i} item of the items is not valid`);
+            }
+        }
+        
+        const tempArr: number[] = []
+        tempArr.push(probabilities[0])
+        for (let i = 1; i < probabilities.length; i++) {
+            tempArr.push(probabilities[i] + tempArr[i-1]);
+        }
+        
+        const random = Math.random();
+        for (let i = 0; i < tempArr.length; i++) {
+            if (random <= tempArr[i]) {
+                return items[i];
+            }
+        }
+        
+        return items[items.length-1];
+    }
 }
