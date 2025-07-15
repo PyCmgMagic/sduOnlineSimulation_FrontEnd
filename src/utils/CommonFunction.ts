@@ -537,7 +537,7 @@ export class CommonFunction
         if (items.length != probabilities.length) {
             throw new Error("items and probabilities arrays must have the same length");
         }
-        if (Math.abs(probabilities.reduce((sum, p) => sum + p) - 1) <= 1e-20) {
+        if (Math.abs(probabilities.reduce((sum, p) => sum + p) - 1) >= 1e-6) {
             throw new Error("probabilities array must sum up to 1");
         }
         for (let i = 0; i < probabilities.length; i++) {
