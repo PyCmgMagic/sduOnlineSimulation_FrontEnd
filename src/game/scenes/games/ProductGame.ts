@@ -4,6 +4,10 @@ import SpriteWithDynamicBody = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody
 import CursorKeys = Phaser.Types.Input.Keyboard.CursorKeys;
 import { CustomerOrder } from "../Game.ts";
 
+interface ProductOrder {
+    DIFFICULTY: number;
+}
+
 export class ProductGame extends Scene 
 {
     private currentOrder: CustomerOrder;
@@ -18,7 +22,10 @@ export class ProductGame extends Scene
     player: Physics.Matter.Sprite;
     time_use: GameObjects.Text // time use
     time_use_number: number = 0;
-    player_move_speed: number = 2;
+    PLAYER_MOVE_SPEED: number[] = [4, 2, 2, 1, 1, 1, 1, 1];
+    PROBABILITY_PER_DIFFICULTY: number[][] = [[0.5, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0], [0.5, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0], [0.5, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0], [0.5, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0], [0.45, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0.05], [0.4, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0.1], [0.35, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0.15], [0.3, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0.2]];
+    TARGET_LEVEL: number = 7;
+    BAD_FRUIT_LEVEL: number = 8;
     
     /* temp components before assets done */
     graphics : GameObjects.Graphics;
@@ -29,7 +36,10 @@ export class ProductGame extends Scene
     timerEvent: Time.TimerEvent;
     
     /* fruit game logical part */
-    FRUITS_TYPES: string[] = ['game-product-fruit1', 'game-product-fruit1', 'game-product-fruit1']
+    // 暂时定为8个水果加一个坏水果， 最后一个是坏水果
+    FRUITS_TYPES: string[] = ['game-product-fruit1', 'game-product-fruit2', 'game-product-fruit3', 'game-product-fruit4', 'game-product-fruit5', 'game-product-fruit6', 'game-product-fruit7', 'game-product-fruit8', 'game-product-bad-fruit'];
+    FRUITS_RADIUS: number[] = [500, 700, 900, 1100, 1300, 1500, 1700, 1900];
+    BAD_FRUIT_RADIUS: number[] = [500, 600, 700, 800];
     fruits: Physics.Matter.Sprite[] = []; // a group of fruits has placed
     dorpTimer: Time.TimerEvent;
     waitingForDorp: boolean = false;
@@ -38,6 +48,10 @@ export class ProductGame extends Scene
     private wasSpaceDown: undefined | boolean = false;
     private static readonly PLACED_FRUIT_GROUP = 1;
     private static readonly UNPLACED_FRUIT_GROUP = -2;
+    
+    /* difficulty level */
+    DIFFICULTY: number = 4; // [0, 7]
+    
     
     constructor() 
     {
@@ -63,6 +77,14 @@ export class ProductGame extends Scene
 
     preload() {
         this.load.image('game-product-fruit1', 'assets/games/product/ball.png');
+        this.load.image('game-product-fruit2', 'assets/games/product/ball.png');
+        this.load.image('game-product-fruit3', 'assets/games/product/ball.png');
+        this.load.image('game-product-fruit4', 'assets/games/product/ball.png');
+        this.load.image('game-product-fruit5', 'assets/games/product/ball.png');
+        this.load.image('game-product-fruit6', 'assets/games/product/ball.png');
+        this.load.image('game-product-fruit7', 'assets/games/product/ball.png');
+        this.load.image('game-product-fruit8', 'assets/games/product/ball.png');
+        this.load.image('game-product-bad-fruit', 'assets/games/product/ball.png');
     }
     
     create()
@@ -209,20 +231,20 @@ export class ProductGame extends Scene
         const cursors: CursorKeys = this.input.keyboard.createCursorKeys();
         
         if (cursors.left.isDown || this.Key_A?.isDown) {
-            this.player.setVelocityX(-this.player_move_speed)
+            this.player.setVelocityX(0 - this.PLAYER_MOVE_SPEED[this.DIFFICULTY])
             if (this.anims.exists('player-move-left')) {
                 this.player.anims.play('player-move-left', true);
             }
             if (this.currentFruit) {
-                this.currentFruit.setVelocityX(-this.player_move_speed)
+                this.currentFruit.setVelocityX(0 - this.PLAYER_MOVE_SPEED[this.DIFFICULTY])
             }
         } else if(cursors.right.isDown || this.Key_D?.isDown) {
-            this.player.setVelocityX(this.player_move_speed)
+            this.player.setVelocityX(this.PLAYER_MOVE_SPEED[this.DIFFICULTY])
             if (this.anims.exists('player-move-right')) {
                 this.player.anims.play('player-move-right', true);
             }
             if (this.currentFruit) {
-                this.currentFruit.setVelocityX(this.player_move_speed)
+                this.currentFruit.setVelocityX(this.PLAYER_MOVE_SPEED[this.DIFFICULTY])
             }
         } else {
             this.player.setVelocityX(0);
@@ -280,12 +302,12 @@ export class ProductGame extends Scene
     
     private generateNewFruit()
     {
-        const randomNumber = Phaser.Math.Between(0,this.FRUITS_TYPES.length - 1)
-        const randomType = this.FRUITS_TYPES[randomNumber];
+        const randomType = CommonFunction.RandomDistribution(this.FRUITS_TYPES, this.PROBABILITY_PER_DIFFICULTY[this.DIFFICULTY]);
+        const randomLevel = this.FRUITS_TYPES.indexOf(randomType);
         this.currentFruit = this.matter.add.sprite(this.player.x, this.player.y + 100, randomType, undefined, {
             shape: {
                 type: 'circle',
-                radius: 500 * (randomNumber + 1)
+                radius: randomLevel === 8 ? this.BAD_FRUIT_RADIUS[this.DIFFICULTY >= 4 ? this.DIFFICULTY - 4 : NaN] :  this.FRUITS_RADIUS[randomLevel]
             },
             collisionFilter: {
                 group: ProductGame.UNPLACED_FRUIT_GROUP,
@@ -296,7 +318,7 @@ export class ProductGame extends Scene
         });
         this.currentFruit.setScale(100 / this.currentFruit.width);
         this.currentFruit.setAlpha(0.5);
-        this.currentFruit.setData({ 'level': randomNumber })
+        this.currentFruit.setData({ 'level': randomLevel })
         this.currentFruit.setIgnoreGravity(true)
         this.currentFruit.setFixedRotation()
         
@@ -333,9 +355,11 @@ export class ProductGame extends Scene
     private syntheticFruits(obj1: Physics.Matter.Sprite, obj2: Physics.Matter.Sprite): void {
         console.log('synthetic fruits');
         const level: number = obj1.getData('level');
-        if (level === this.FRUITS_TYPES.length - 1) {
+        if (level === this.TARGET_LEVEL) {
+            this.scene.pause();
+        } else if (level == this.BAD_FRUIT_LEVEL) {
             return;
-        } else {
+        }else {
             const newLevelNumber: number = level + 1;
             const newFruitType = this.FRUITS_TYPES[newLevelNumber];
             const x: number = (obj1.x + obj2.x) / 2;
@@ -355,7 +379,7 @@ export class ProductGame extends Scene
             const newFruit = this.matter.add.sprite(x, y, newFruitType, undefined, {
                 shape: {
                     type: 'circle',
-                    radius: 500 * (newLevelNumber + 1)
+                    radius: this.FRUITS_RADIUS[newLevelNumber],
                 },
                 collisionFilter: {
                     group: ProductGame.PLACED_FRUIT_GROUP,
@@ -372,4 +396,5 @@ export class ProductGame extends Scene
             this.fruits.push(newFruit);
         }
     }
+    
 }
