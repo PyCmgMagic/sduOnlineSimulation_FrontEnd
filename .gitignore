@@ -20,6 +20,7 @@ dist-ssr
 md
 .DS_Store
 *.suo
+.cursor
 *.ntvs*
 *.njsproj
 *.sln

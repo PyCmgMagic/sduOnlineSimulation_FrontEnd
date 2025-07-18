@@ -188,7 +188,7 @@ export class Game extends Scene
     private createOrdersPanel(): void {
         this.ordersPanel = this.add.container(this.cameras.main.width-180, 100);
         
-        const panelHeight = 550;
+        const panelHeight = 570;
         const ordersBg = this.add.graphics();
         ordersBg.fillStyle(0xFFFFFF, 0.9);
         ordersBg.lineStyle(3, 0x8B4513, 1);
@@ -487,7 +487,7 @@ export class Game extends Scene
     }
     
     private updateScoreDisplay(): void {
-        this.scoreDisplay.setText(`💰 项目预算: ¥${this.gameScore}`);
+        this.scoreDisplay.setText(`💰 学线币: ¥${this.gameScore}`);
     }
 
     // --- TIMER & PATIENCE MANAGEMENT ---
