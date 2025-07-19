@@ -338,8 +338,8 @@ export class FrontEndGame extends Scene {
     }
 
     private createControls(): void {
-        CommonFunction.createButton(this, this.cameras.main.width - 150, this.cameras.main.height - 50, 'button-normal', 'button_pressed', '🎉 完成开发', 10, () => this.completeGame(), true, 0.8);
-        CommonFunction.createButton(this, this.cameras.main.width - 150, this.cameras.main.height - 100, 'button-normal', 'button_pressed', '🔄 重新开始', 10, () => this.restartGame(), true, 0.8);
+        CommonFunction.createButton(this, this.cameras.main.width - 150, this.cameras.main.height - 50, 'button-normal', 'button-pressed', '🎉 完成开发', 10, () => this.completeGame(), true, 0.8);
+        CommonFunction.createButton(this, this.cameras.main.width - 150, this.cameras.main.height - 100, 'button-normal', 'button-pressed', '🔄 重新开始', 10, () => this.restartGame(), true, 0.8);
     }
 
     private setupKeyboardControls(): void {
@@ -647,6 +647,17 @@ export class FrontEndGame extends Scene {
     private restartGame(): void {
         this.gameOverText?.destroy();
         this.pauseText?.destroy();
+        
+        // 清理所有计时器
+        if (this.dropTimer) {
+            this.dropTimer.remove(false);
+            this.dropTimer = null;
+        }
+        if (this.gameTimer) {
+            this.gameTimer.remove(false);
+            this.gameTimer = null;
+        }
+        
         this.initializeGameState();
         this.updateScore(0);
         this.updateLevel();
@@ -689,6 +700,13 @@ export class FrontEndGame extends Scene {
         console.log("游戏完成! 最终分数:", this.gameState.score);
         console.log("游戏时间:", this.formatTime(this.gameState.gameTime));
         console.log("消除方块统计:", this.gameState.clearedBlocksByColor);
+        const task = this.currentOrder.items.find(item => item.item.id === 'frontend_dev');
+        if (task) {
+            task.status = 'completed';
+            console.log(`任务 ${task.item.name} 已标记为完成`);
+        }
+
+        this.scene.start('GameEntrance', { order: this.currentOrder });
     }
 
     private formatTime(seconds: number): string {
