@@ -564,4 +564,38 @@ export class CommonFunction
         
         return items[items.length-1];
     }
+    
+    // =====================创建弹窗============
+    /**
+     * 当玩家完成游戏后给予的通知弹窗
+     * @param scene - 当前场景
+     * @param x - X坐标
+     * @param y - Y坐标
+     * @param width - 宽度
+     * @param height - 高度
+     * @param text - 文本内容
+     * @param title - 标题
+     * @param callback - 回调函数
+     */
+    public static createConfirmPopup(
+        scene: Scene,
+        x: number,
+        y: number,
+        width: number = 1024,
+        height: number,
+        text: string,
+        title: string,
+        callback: () => void
+    ) {
+        scene.add.rectangle(0, 0, 1024, 768, 0x000000, 0.7).setOrigin(0).setInteractive().setVisible(true);
+        const container = scene.add.container(x, y).setVisible(true);
+        // 禁用容器的裁剪功能
+        container.setSize(width, height);
+        const bg = scene.add.nineslice(0, 0, 'confirm-pop-up', undefined, width, height, 20, 20);
+        // 适当调整文本的 y 坐标
+        const txt = scene.add.text(0, -20, text, { fontSize: 20, color: '#000' }).setOrigin(0.5);
+        const tle = scene.add.text(0, -180, title, { fontSize: 25, color: '#fff' }).setOrigin(0.5);
+        const confirmBtn = this.createButton(scene, 0, 150, 'button-normal', 'button-pressed', '确认', 21, callback);
+        container.add([bg, txt, confirmBtn, tle]);
+    }
 }
