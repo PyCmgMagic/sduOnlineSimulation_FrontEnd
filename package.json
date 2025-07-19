@@ -27,6 +27,8 @@
         "build-nolog": "vite build --config vite/config.prod.mjs"
     },
     "dependencies": {
+        "@ant-design/icons": "^6.0.0",
+        "antd": "^5.26.5",
         "axios": "^1.10.0",
         "phaser": "^3.90.0",
         "react": "^19.0.0",
