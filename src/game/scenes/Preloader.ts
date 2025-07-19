@@ -730,7 +730,10 @@ export class Preloader extends Scene
         this.load.image('button-normal', 'ui/buttons/buttonLong_beige.png');
         this.load.image('button-pressed', 'ui/buttons/buttonLong_beige_pressed.png');
         this.load.image('button-star', 'star.png'); // 使用星星作为按钮装饰
-        this.load.image('settings', 'ui/buttons/setting.png'); 
+        this.load.image('settings', 'ui/buttons/setting.png');
+        
+        // pop up
+        this.load.image('confirm-pop-up', 'pop-up.png');
         
         // 加载UI组件
         // this.load.image('button', 'ui/button.png');
