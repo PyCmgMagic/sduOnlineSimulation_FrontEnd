@@ -151,7 +151,7 @@ export class FrontEndGame extends Scene {
     }
 
     private createGameUI(): void {
-        // --- 左侧UI区域 (保持不变) ---
+        // --- 左侧UI区域 ---
         const titleText = this.add.text(50, 50, '前端开发', {
             fontSize: '32px', color: '#8B4513', fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
             stroke: '#FFF8DC', strokeThickness: 6
@@ -589,7 +589,7 @@ export class FrontEndGame extends Scene {
                 progressInSet = 5;
             }
 
-            // --- 更新进度条 ---
+            // 更新进度条
             const fillWidth = (progressInSet / 5) * BAR_MAX_WIDTH;
             
             barFill.clear();
@@ -598,7 +598,7 @@ export class FrontEndGame extends Scene {
                 barFill.fillRoundedRect(barStartX, textObject.y, fillWidth, BAR_HEIGHT, 5);
             }
 
-            // --- 更新文本 ---
+            // 更新文本
             textObject.setText(this.getTextToShow(color)+` x ${completedSets}`);
         }
     }

@@ -1,19 +1,21 @@
 import { useRef, useState } from 'react';
 import { IRefPhaserGame, PhaserGame } from './PhaserGame';
-import { MainMenu } from './game/scenes/MainMenu';
+import { AntdConfigProvider } from './antd-config';
+import 'antd/dist/reset.css'; 
 
-function App()
-{
-
+function App() {
     const phaserRef = useRef<IRefPhaserGame | null>(null);
 
     const currentScene = (scene: Phaser.Scene) => {
+        // 场景切换回调
     }
 
     return (
-        <div id="app">
-            <PhaserGame ref={phaserRef} currentActiveScene={currentScene} />
-        </div>
+        <AntdConfigProvider>
+            <div id="app">
+                <PhaserGame ref={phaserRef} currentActiveScene={currentScene} />
+            </div>
+        </AntdConfigProvider>
     )
 }
 
