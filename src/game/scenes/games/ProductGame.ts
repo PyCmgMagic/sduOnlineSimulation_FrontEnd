@@ -18,8 +18,8 @@ export class ProductGame extends Scene
     
     /* base variable */
     background: GameObjects.Image;
-    bottle: GameObjects.Image; // 合成的瓶子区域
     player: Physics.Matter.Sprite;
+    time_use_container: GameObjects.Container;
     time_use: GameObjects.Text // time use
     time_use_number: number = 0;
     PLAYER_MOVE_SPEED: number[] = [4, 2, 2, 1, 1, 1, 1, 1];
@@ -38,8 +38,9 @@ export class ProductGame extends Scene
     /* fruit game logical part */
     // 暂时定为8个水果加一个坏水果， 最后一个是坏水果
     FRUITS_TYPES: string[] = ['game-product-fruit1', 'game-product-fruit2', 'game-product-fruit3', 'game-product-fruit4', 'game-product-fruit5', 'game-product-fruit6', 'game-product-fruit7', 'game-product-fruit8', 'game-product-bad-fruit'];
-    FRUITS_RADIUS: number[] = [500, 700, 900, 1100, 1300, 1500, 1700, 1900];
-    BAD_FRUIT_RADIUS: number[] = [500, 600, 700, 800];
+    FRUITS_RADIUS: number[] = [20, 28, 36, 44, 52, 60, 68, 76];
+    BAD_FRUIT_RADIUS: number[] = [20, 28, 32, 44];
+    BAD_FRUIT: string[] = ['game-product-bad-fruit-1', 'game-product-bad-fruit-2', 'game-product-bad-fruit-3', 'game-product-bad-fruit-4'];
     fruits: Physics.Matter.Sprite[] = []; // a group of fruits has placed
     dorpTimer: Time.TimerEvent;
     waitingForDorp: boolean = false;
@@ -66,7 +67,7 @@ export class ProductGame extends Scene
                         y: 0.2,
                         x: 0
                     },
-                    debug: true,
+                    debug: false,
                 },
             },
         });
@@ -79,168 +80,43 @@ export class ProductGame extends Scene
     }
 
     preload() {
-        this.load.image('game-product-fruit1', 'assets/games/product/ball.png');
-        this.load.image('game-product-fruit2', 'assets/games/product/ball.png');
-        this.load.image('game-product-fruit3', 'assets/games/product/ball.png');
-        this.load.image('game-product-fruit4', 'assets/games/product/ball.png');
-        this.load.image('game-product-fruit5', 'assets/games/product/ball.png');
-        this.load.image('game-product-fruit6', 'assets/games/product/ball.png');
-        this.load.image('game-product-fruit7', 'assets/games/product/ball.png');
-        this.load.image('game-product-fruit8', 'assets/games/product/ball.png');
-        this.load.image('game-product-bad-fruit', 'assets/games/product/ball.png');
+        this.load.image('game-product-fruit1', 'assets/games/product/fruit-1.png');
+        this.load.image('game-product-fruit2', 'assets/games/product/fruit-2.png');
+        this.load.image('game-product-fruit3', 'assets/games/product/fruit-3.png');
+        this.load.image('game-product-fruit4', 'assets/games/product/fruit-4.png');
+        this.load.image('game-product-fruit5', 'assets/games/product/fruit-5.png');
+        this.load.image('game-product-fruit6', 'assets/games/product/fruit-6.png');
+        this.load.image('game-product-fruit7', 'assets/games/product/fruit-7.png');
+        this.load.image('game-product-fruit8', 'assets/games/product/fruit-8.png');
+        this.load.image('game-product-bad-fruit-1', 'assets/games/product/bad-fruit-1.png');
+        this.load.image('game-product-bad-fruit-2', 'assets/games/product/bad-fruit-2.png');
+        this.load.image('game-product-bad-fruit-3', 'assets/games/product/bad-fruit-3.png');
+        this.load.image('game-product-bad-fruit-4', 'assets/games/product/bad-fruit-4.png');
+        this.load.image("game-product-path", 'assets/games/product/path.png');
     }
     
     create()
     {
-        this.background = CommonFunction.createBackground(this, 514, 384, 'background');
-        
-        /* Check if the assets exist */
-        console.log('🔍 ProductGame 资源检查:');
-        console.log('game-product-player 存在:', this.textures.exists('game-product-player'));
-        console.log('game-product-platform 存在:', this.textures.exists('game-product-platform'));
+        this.checkAssets();
+        this.createBackGround();
         
         /* init keys */
         this.Key_D = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D)
         this.Key_SPACE = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
         this.Key_A = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.A)
         
-        /* the timer init */
-        this.initTimer();
-        
-        /* init the pause event */
+        this.createTitle();
+        this.createIntroArea();
+        this.createOperationArea();
+        this.createLevelArea();
+        this.createPathArea();
+        this.createTimerArea();
         this.initPause();
-        
-        /* init the player */
-        this.player = this.matter.add.sprite(514, 348 - 140, 'game-product-player', 4, {
-            isStatic: false,
-            friction: 0,
-            collisionFilter: {
-                category: 0x0008,
-                mask: 0x0004
-            }
-        });
-        this.player.setScale(1.3);
-        this.player.setFixedRotation()
-        
-        /* player move anim */
-        this.anims.create({
-            key: 'player-move-left',
-            frames: this.anims.generateFrameNumbers('game-product-player', { start: 0, end: 3 }),
-            frameRate: 10,
-            repeat: -1
-        })
-        this.anims.create({
-            key: "player-move-right",
-            frames: this.anims.generateFrameNumbers('game-product-player', { start: 5, end: 8 }),
-            frameRate: 10,
-            repeat: -1
-        })
-        this.anims.create({
-            key: 'player-move-turn',
-            frames: [{ key: 'game-product-player', frame: 4 }],
-            frameRate: 20,
-        })
-        
-        /* draw a Rect as game area */
-        const rectWidth: number = 400;
-        const rectHeight: number = 512;
-        const rectX: number = 514 - rectWidth / 2; 
-        const rectY: number = 768 - rectHeight;
-        this.graphics = this.add.graphics();
-        this.graphics.fillStyle(0x808080, 0.5);
-        this.graphics.lineStyle(2, 0x000000, 0.8);
-        this.graphics.strokeRect(rectX, rectY, rectWidth, rectHeight);
-        this.graphics.fillRect(rectX, rectY, rectWidth, rectHeight);
-
-        /* boundary */
-        this.platforms = [
-            // left, right, top, bottom
-            this.matter.add.rectangle(rectX, rectY + rectHeight / 2 - 50, 2, rectHeight + 100, {
-                isStatic: true, 
-                label: 'boundary',
-                collisionFilter: {
-                    category: 0x0004,
-                    mask: 0x0001 | 0x0002 | 0x0008
-                },
-                render: {
-                    visible: false
-                },
-                restitution: 1
-        }),
-            this.matter.add.rectangle(rectX + rectWidth, rectY + rectHeight / 2 - 50, 2, rectHeight + 100, {
-                isStatic: true, 
-                label: 'boundary',
-                collisionFilter: {
-                    category: 0x0004,
-                    mask: 0x0001 | 0x0002 | 0x0008
-                },
-                render: {
-                    visible: false
-                },
-                restitution: 1
-        }), 
-            this.matter.add.rectangle(rectX + rectWidth / 2, rectY, rectWidth, 2, {
-                isStatic: true, 
-                label: 'boundary',
-                collisionFilter: {
-                    category: 0x0004,
-                    mask: 0x0001 | 0x0002 | 0x0008
-                },
-                render: {
-                    visible: false
-                },
-                restitution: 0.2
-            }),
-            this.matter.add.rectangle(rectX + rectWidth / 2, rectY + rectHeight, rectWidth, 2, {
-                isStatic: true, 
-                label: 'boundary',
-                collisionFilter: {
-                    category: 0x0004,
-                    mask: 0x0001 | 0x0002 | 0x0008
-                },
-                render: {
-                    visible: false
-                },
-                restitution: 0.2
-            })
-        ];
-        
-        
-        /* init the game core logical part */
+        this.initPlayer();
+        this.createAnims();
+        this.createGameArea();
         this.generateNewFruit();
-        
-        
-
-        /* Collision detection */
-        this.matter.world.add(this.platforms)
-        // this.physics.add.collider(this.fruits, this.fruits, this.syntheticFruits, this.isFruitSame, this);
-        this.matter.world.on('collisionstart', 
-            (event: Phaser.Physics.Matter.Events.CollisionStartEvent,) => 
-            {
-                event.pairs.forEach(pairs => {
-                    
-                    const bodyA = pairs.bodyA.gameObject as Physics.Matter.Sprite | null;
-                    const bodyB = pairs.bodyB.gameObject as Physics.Matter.Sprite | null;
-
-                    if (bodyA != null && bodyB != null && this.isFruitSame(bodyA, bodyB)) {
-                        console.log('collision started');
-                        this.syntheticFruits(bodyA, bodyB);
-                    }
-                })
-            
-        })
-        
-        CommonFunction.createButton(this, 120, 90, 'button-normal', 'button-pressed', '完成产品', 10, () => {
-            console.log('产品开发完成，返回开发中心');
-
-            const task = this.currentOrder.items.find(item => item.item.id === 'product_design');
-            if (task) {
-                task.status = 'completed';
-                console.log(`任务 ${task.item.name} 已标记为完成`);
-            }
-
-            this.scene.start('GameEntrance', { order: this.currentOrder });
-        });
+        this.createCollisionDetection();
     }
     
     update()
@@ -289,18 +165,166 @@ export class ProductGame extends Scene
         
     }
     
-    private incrementTimer() {
-        this.time_use_number++;
-        this.time_use.setText(`Time used: \n ${this.time_use_number}`);
+    private checkAssets() {
+        /* Check if the assets exist */
+        console.log('🔍 ProductGame 资源检查:');
+        console.log('game-product-player 存在:', this.textures.exists('game-product-player'));
+        console.log('game-product-platform 存在:', this.textures.exists('game-product-platform'));
     }
     
-    private initTimer()
-    {
-        /* the timer */
-        this.time_use = this.add.text(10, 400, `Time used: \n ${this.time_use_number}`, {
-            fontSize: "24px",
-            color: '#ffffff'
+    private createBackGround() {
+        this.cameras.main.setBackgroundColor(Phaser.Display.Color.GetColor(254, 234, 201));
+
+        // 定义气泡属性
+        const bubbleColors = [0xffd700, 0xffa500, 0xff6347];
+        const bubbleMinRadius = 10;
+        const bubbleMaxRadius = 50;
+        const bubbleCount = 5;
+
+        for (let i = 0; i < bubbleCount; i++) {
+            // 随机生成气泡属性
+            const radius = Phaser.Math.Between(bubbleMinRadius, bubbleMaxRadius);
+            const x = Phaser.Math.Between(0, this.game.config.width as number);
+            const y = Phaser.Math.Between(0, this.game.config.height as number);
+            const color = Phaser.Utils.Array.GetRandom(bubbleColors);
+            const duration = Phaser.Math.Between(3000, 8000);
+
+            // 创建气泡，初始位置在屏幕上方
+            const startY = -radius;
+            const bubble = this.add.circle(x, startY, radius, color, 0.6);
+
+            // 添加气泡动画，从屏幕上方移动到初始随机位置
+            this.tweens.add({
+                targets: bubble,
+                y: y, // 目标位置为初始随机生成的 y 坐标
+                alpha: 0,
+                duration: duration,
+                ease: 'Linear',
+                repeat: -1,
+                yoyo: false
+            });
+        }
+    }
+    
+    private initPlayer() {
+        this.player = this.matter.add.sprite(514, 348 - 140, 'game-product-player', 4, {
+            isStatic: false,
+            friction: 0,
+            collisionFilter: {
+                category: 0x0008,
+                mask: 0x0004
+            }
         });
+        this.player.setScale(1.3);
+        this.player.setFixedRotation()
+    }
+    
+    private createAnims() {
+        this.anims.create({
+            key: 'player-move-left',
+            frames: this.anims.generateFrameNumbers('game-product-player', { start: 0, end: 3 }),
+            frameRate: 10,
+            repeat: -1
+        })
+        this.anims.create({
+            key: "player-move-right",
+            frames: this.anims.generateFrameNumbers('game-product-player', { start: 5, end: 8 }),
+            frameRate: 10,
+            repeat: -1
+        })
+        this.anims.create({
+            key: 'player-move-turn',
+            frames: [{ key: 'game-product-player', frame: 4 }],
+            frameRate: 20,
+        })
+    }
+    
+    private createGameArea() {
+        const rectWidth: number = 400;
+        const rectHeight: number = 512;
+        const rectX: number = 514 - rectWidth / 2;
+        const rectY: number = 768 - rectHeight;
+        this.graphics = this.add.graphics();
+        this.graphics.fillStyle(0x808080, 0.5);
+        this.graphics.lineStyle(2, 0x000000, 0.8);
+        this.graphics.strokeRect(rectX, rectY, rectWidth, rectHeight);
+        this.graphics.fillRect(rectX, rectY, rectWidth, rectHeight);
+
+        /* boundary */
+        this.platforms = [
+            // left, right, top, bottom
+            this.matter.add.rectangle(rectX, rectY + rectHeight / 2 - 50, 2, rectHeight + 100, {
+                isStatic: true,
+                label: 'boundary',
+                collisionFilter: {
+                    category: 0x0004,
+                    mask: 0x0001 | 0x0002 | 0x0008
+                },
+                render: {
+                    visible: false
+                },
+                restitution: 1
+            }),
+            this.matter.add.rectangle(rectX + rectWidth, rectY + rectHeight / 2 - 50, 2, rectHeight + 100, {
+                isStatic: true,
+                label: 'boundary',
+                collisionFilter: {
+                    category: 0x0004,
+                    mask: 0x0001 | 0x0002 | 0x0008
+                },
+                render: {
+                    visible: false
+                },
+                restitution: 1
+            }),
+            this.matter.add.rectangle(rectX + rectWidth / 2, rectY, rectWidth, 2, {
+                isStatic: true,
+                label: 'boundary',
+                collisionFilter: {
+                    category: 0x0004,
+                    mask: 0x0001 | 0x0002 | 0x0008
+                },
+                render: {
+                    visible: false
+                },
+                restitution: 0.2
+            }),
+            this.matter.add.rectangle(rectX + rectWidth / 2, rectY + rectHeight, rectWidth, 2, {
+                isStatic: true,
+                label: 'boundary',
+                collisionFilter: {
+                    category: 0x0004,
+                    mask: 0x0001 | 0x0002 | 0x0008
+                },
+                render: {
+                    visible: false
+                },
+                restitution: 0.2
+            })
+        ];
+    }
+    
+    private incrementTimer() {
+        this.time_use_number++;
+        this.time_use.setText(`${this.time_use_number}`);
+    }
+    
+    private createTimerArea() {
+        
+        const time_title = this.add.text(0, 0, '用时：', {
+            fontSize: "24px",
+            color: '#4d2600',
+            align: 'center',
+            fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
+        })
+        this.time_use = this.add.text(0, time_title.height + 10, `${this.time_use_number}`, {
+            fontSize: "32px",
+            color: '#4d2600',
+            align: 'center',
+            fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
+        });
+
+        this.time_use_container = this.add.container(10, 400, [time_title, this.time_use]);
 
         this.timerEvent = this.time.addEvent({
             delay: 1000,
@@ -315,6 +339,128 @@ export class ProductGame extends Scene
                 this.timerEvent.destroy();
             }
         });
+        
+        const padding = 20; // 内边距
+        const cornerRadius = 10; // 圆角半径
+        
+        const rectWidth = time_title.width + 2 * padding;
+        const rectHeight = time_title.height + this.time_use.height + 2 * padding;
+        
+        const sceneWidth = this.cameras.main.width;
+        const rectX = sceneWidth - rectWidth - padding;
+        const rectY = padding;
+        
+        const graphics = this.add.graphics();
+        graphics.fillStyle(0xffe6b3, 0.8);
+        graphics.lineStyle(2, 0xcc6600, 0.8); 
+        graphics.strokeRoundedRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
+        graphics.fillRoundedRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
+
+        // 调整时间文本位置到圆角矩形内
+        this.time_use_container.setPosition(rectX + padding, rectY + padding);
+    }
+    
+    private createTitle() : void{
+        this.add.text( this.cameras.main.width / 2 - 100, 20, "前端开发", {
+            fontSize: "36px",
+            fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
+            color: '#4d2600',
+            align: 'center',
+            padding: {
+                left: 10,
+                right: 10,
+                top: 5,
+                bottom: 5
+            }
+        })
+    }
+    
+    private createIntroArea() {
+        const rectWidth = 295;
+        const rectHeight = 390;
+        const rectX = 10;
+        const rectY = 100;
+        
+        const padding = 8;
+        const cornerRadius = 8;
+        const graphics = this.add.graphics();
+        graphics.fillStyle(0xffe6b3, 0.8);
+        graphics.lineStyle(2, 0xcc6600, 0.8);
+        graphics.strokeRoundedRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
+        graphics.fillRoundedRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
+        
+        const intro: string = '📃游戏介绍 ' +
+            '\u3000🎮欢迎来到《产品大冒险》！这是一场充满乐趣与挑战的产品设计之旅哦！在游戏里，你将化身为一位超级厉害的产品设计师，开启一场别开生面的想法合成大冒险。\n' +
+            '\u3000💡游戏中有8种不同的想法，每种想法都有独特的色彩，还有一种神秘的坏想法哦。你要巧妙地将相同的想法碰撞在一起，擦出思想的火花，形成更高级的构思。最终构思出你的产品！\n' +
+            '\u3000⏱️在游戏过程中，你还得时刻关注用时，争取用最短的时间完成任务，成为顶尖的产品设计师！快来冒险吧！'
+        const text = this.add.text(rectX + padding, rectY + padding, intro, {
+            fontSize: '18px',
+            color: '#4d2600',
+            align: 'left',
+            fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
+        });
+        
+        text.setWordWrapWidth(rectWidth - padding * 2, true);
+        
+    }
+    
+    private createPathArea() : void {
+        this.add.image(870, 350, 'game-product-path');
+    }
+    
+    private createOperationArea() {
+        const rectWidth = 295;
+        const rectHeight = 200;
+        const rectX = 10;
+        const rectY = 520;
+        
+        const padding = 5;
+        const cornerRadius = 5;
+        const graphics = this.add.graphics();
+        graphics.fillStyle(0xffe6b3, 0.8);
+        graphics.lineStyle(2, Number('#B88A50'), 0.8);
+        graphics.strokeRoundedRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
+        graphics.fillRoundedRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
+        
+        const operationIntro: string = '🎮游戏操作 '+
+            '\u3000🚶‍♂️使用键盘的方向键或A/D或←/→键控制玩家移动。\n' +
+            '\u3000🪄点击空格键开始放置想法。\n' +
+            '\u3000🔥将相同的想法碰撞在一起，擦出火花，形成更高级的构思。\n' +
+            '\u3000⭐注意时间，争取用最短的时间完成任务！'
+        const text = this.add.text(rectX + padding, rectY + padding, operationIntro, {
+            fontSize: '18px',
+            color: '#59391F',
+            align: 'left',
+            fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
+        });
+        text.setWordWrapWidth(rectWidth - padding * 2, true);
+    }
+    
+    private createLevelArea() {
+        const rectWidth = 200;
+        const rectHeight = 50;
+        
+        const rectX = 650;
+        const rectY = 20;
+        
+        const padding = 10;
+        const cornerRadius = 10;
+        
+        const graphics = this.add.graphics();
+        graphics.fillStyle(0xffe6b3, 0.8);
+        graphics.lineStyle(2, 0xcc6600, 0.8);
+        graphics.strokeRoundedRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
+        graphics.fillRoundedRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
+        const text: string = '🏆当前游戏难度：' + `${this.DIFFICULTY}`;
+        
+        const levelText = this.add.text(rectX + padding, rectY + padding, text, {
+            fontSize: '20px',
+            color: '#4d2600',
+            align: 'left',
+            fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
+        });
+        
+        levelText.setWordWrapWidth(rectWidth - padding * 2, true);
     }
     
     private initPause()
@@ -345,10 +491,10 @@ export class ProductGame extends Scene
         const randomType = CommonFunction.RandomDistribution(this.FRUITS_TYPES, this.PROBABILITY_PER_DIFFICULTY[this.DIFFICULTY]);
         const randomLevel = this.FRUITS_TYPES.indexOf(randomType);
         if (randomLevel == this.BAD_FRUIT_LEVEL) {
-            this.currentFruit = this.matter.add.sprite(this.player.x, this.player.y + 100, randomType, undefined, {
+            this.currentFruit = this.matter.add.sprite(this.player.x, this.player.y + 100, this.BAD_FRUIT[this.DIFFICULTY - 4], undefined, {
                 shape: {
                     type: 'circle',
-                    radius: this.BAD_FRUIT_RADIUS[this.DIFFICULTY - 4]
+                    radius: this.BAD_FRUIT_RADIUS[this.DIFFICULTY - 4] / 2
                 },
                 collisionFilter: {
                     group: ProductGame.UNPLACED_FRUIT_GROUP,
@@ -366,7 +512,7 @@ export class ProductGame extends Scene
             this.currentFruit = this.matter.add.sprite(this.player.x, this.player.y + 100, randomType, undefined, {
                 shape: {
                     type: 'circle',
-                    radius: this.FRUITS_RADIUS[randomLevel]
+                    radius: this.FRUITS_RADIUS[randomLevel] / 2
                 },
                 collisionFilter: {
                     group: ProductGame.UNPLACED_FRUIT_GROUP,
@@ -375,7 +521,7 @@ export class ProductGame extends Scene
                 },
                 restitution: 0.2
             });
-            this.currentFruit.setScale(100 / this.currentFruit.width);
+            this.currentFruit.setScale( 1.5 );
             this.currentFruit.setAlpha(0.5);
             this.currentFruit.setData({ 'level': randomLevel })
             this.currentFruit.setIgnoreGravity(true)
@@ -385,6 +531,24 @@ export class ProductGame extends Scene
         
         /* collider detection */
         // this.matter.world.add(this.platforms)
+    }
+    
+    private createCollisionDetection() {
+        this.matter.world.add(this.platforms)
+        this.matter.world.on('collisionstart',
+            (event: Phaser.Physics.Matter.Events.CollisionStartEvent,) =>
+            {
+                event.pairs.forEach(pairs => {
+
+                    const bodyA = pairs.bodyA.gameObject as Physics.Matter.Sprite | null;
+                    const bodyB = pairs.bodyB.gameObject as Physics.Matter.Sprite | null;
+
+                    if (bodyA != null && bodyB != null && this.isFruitSame(bodyA, bodyB)) {
+                        this.syntheticFruits(bodyA, bodyB);
+                    }
+                })
+
+            })
     }
     
     private placeFruits()
@@ -409,12 +573,12 @@ export class ProductGame extends Scene
         if (!('getData' in obj1 ) || !("getData" in obj2)) {
             return false;
         }
-        console.log('fruit same', obj1.getData('level'), obj2.getData('level'))
+        // console.log('fruit same', obj1.getData('level'), obj2.getData('level'))
         return obj1.getData('level') === obj2.getData('level');
     }
     
     private syntheticFruits(obj1: Physics.Matter.Sprite, obj2: Physics.Matter.Sprite): void {
-        console.log('synthetic fruits');
+        // console.log('synthetic fruits');
         const level: number = obj1.getData('level');
         if (level == this.BAD_FRUIT_LEVEL) {
             return;
@@ -438,7 +602,7 @@ export class ProductGame extends Scene
             const newFruit = this.matter.add.sprite(x, y, newFruitType, undefined, {
                 shape: {
                     type: 'circle',
-                    radius: this.FRUITS_RADIUS[newLevelNumber],
+                    radius: this.FRUITS_RADIUS[newLevelNumber] / 2,
                 },
                 collisionFilter: {
                     group: ProductGame.PLACED_FRUIT_GROUP,
@@ -451,22 +615,22 @@ export class ProductGame extends Scene
                 'level': newLevelNumber,
             });
             newFruit.setFriction(0);
-            newFruit.setScale( 100 / newFruit.width);
+            newFruit.setScale( 1.5 );
             this.fruits.push(newFruit);
 
             if (newLevelNumber === this.TARGET_LEVEL) {
-                console.log('产品开发完成，返回开发中心!');
+                CommonFunction.createConfirmPopup(this, 512, 368,1024, 500, '您的产品设计已完成！', '成功啊', () => {
+                    console.log('产品开发完成，返回开发中心!');
 
-                const task = this.currentOrder.items.find(item => item.item.id === 'product_design');
-                if (task) {
-                    task.status = 'completed';
-                    console.log(`任务 ${task.item.name} 已标记为完成`);
-                }
+                    const task = this.currentOrder.items.find(item => item.item.id === 'product_design');
+                    if (task) {
+                        task.status = 'completed';
+                        console.log(`任务 ${task.item.name} 已标记为完成`);
+                    }
 
-                this.scene.start('GameEntrance', {order: this.currentOrder});
-
+                    this.scene.start('GameEntrance', {order: this.currentOrder});
+                })
             }
         }
     }
-    
 }
