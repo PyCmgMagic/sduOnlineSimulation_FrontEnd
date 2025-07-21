@@ -117,6 +117,7 @@ export class ProductGame extends Scene
         this.createGameArea();
         this.generateNewFruit();
         this.createCollisionDetection();
+        this.createResetButton();
     }
     
     update()
@@ -549,6 +550,28 @@ export class ProductGame extends Scene
                 })
 
             })
+    }
+    
+    private createResetButton() {
+        const x = this.cameras.main.centerX;
+        const y = this.cameras.main.centerY;
+        CommonFunction.createButton(this, x + 350, y + 350, 'button-normal', 'button-pressed', '重新开始', 10, () => {
+            this.resetGame();
+        })
+    }
+    
+    private resetGame() {
+        this.fruits.forEach(fruit => {
+            fruit.destroy();
+        });
+        this.fruits = [];
+        
+        if(this.currentFruit) {
+            this.currentFruit.destroy();
+            this.currentFruit = null;
+        }
+        
+        this.generateNewFruit();
     }
     
     private placeFruits()
