@@ -735,6 +735,16 @@ export class Preloader extends Scene
         // pop up
         this.load.image('confirm-pop-up', 'pop-up.png');
         
+        // GameEntrance
+        this.load.image('game-entrance-mac', 'game-entrance/mac.png');
+        this.load.image('game-entrance-idea', 'game-entrance/idea.png');
+        this.load.image('game-entrance-vsc', 'game-entrance/vsc.png');
+        this.load.image('game-entrance-ps', 'game-entrance/ps.png');
+        this.load.image('game-entrance-studio', 'game-entrance/studio.ico');
+        this.load.image('game-entrance-xd', 'game-entrance/xd.png');
+        this.load.image('game-entrance-arrow-e', 'game-entrance/arrow_e.png');
+        this.load.image('game-entrance-arrow-w', 'game-entrance/arrow_w.png');
+        
         // 加载UI组件
         // this.load.image('button', 'ui/button.png');
         // this.load.image('panel', 'ui/panel.png');
