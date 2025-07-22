@@ -80,7 +80,6 @@ export class GameEntrance extends Scene{
             this.submitButton.setVisible(false);
         }
     }
-    
     private createOperateButtons() {
         // Add a back button
         this.backButton = this.add.container(150, 700);

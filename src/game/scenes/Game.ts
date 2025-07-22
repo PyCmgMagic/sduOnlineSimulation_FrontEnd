@@ -26,6 +26,7 @@ export interface CustomerOrder {
     orderTime: Date;
     ddl: number; // 截止日期 (剩余天数)
     totalDevTime: number; // 总开发时间
+    difficulty: number; // 难度系数 (1-5)
     preparationProgress: number; // 制作进度 (0-100)
 }
 
@@ -429,7 +430,8 @@ export class Game extends Scene
             orderTime: new Date(),
             ddl: ddl,
             totalDevTime: totalDevTime,
-            preparationProgress: 0
+            preparationProgress: 0,
+            difficulty: Math.floor(Math.random() * 5) + 1 // 随机难度系数 (1-5)
         };
     }
 

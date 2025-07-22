@@ -110,7 +110,60 @@ export class CommonFunction
         return container;
         
     }
+    /**
+     * 创建 book 图标按钮
+     * @param scene - 当前场景
+     * @param x - x 坐标
+     * @param y - y 坐标
+     * @param callback - 点击后的回调（可选，默认弹窗）
+     * @param scale - 图标缩放（可选，默认 0.37）
+     * @param depth - 层级（可选，默认 100）
+     * @returns 图标对象
+     */
+    public static createBookInfoButton(
+        scene: Scene,
+        x: number = scene.cameras.main.width - 50,
+        y: number = 50,
+        title: string = '',
+        text: string = '',
+        callback?: () => void,
+        scale: number = 0.37,
+        depth: number = 100
+    ): GameObjects.Image {
+        const icon = scene.add.image(x, y, 'book').setInteractive().setScale(scale).setDepth(depth);
+        icon.on('pointerover', () => {
+            scene.tweens.add({ targets: icon, scale: scale + 0.02, duration: 120 });
+        });
+        icon.on('pointerout', () => {
+            scene.tweens.add({ targets: icon, scale: scale, duration: 120 });
+        });
+        icon.on('pointerdown', () => {
+            if (callback) {
+                callback();
+            } else {
+                CommonFunction.showGameIntroPopup(scene,title,text);
+            }
+        });
+        return icon;
+    }
 
+    /**
+     * 弹窗（静态方法，供 book 图标按钮调用）
+     * @param scene - 当前场景
+     */
+    public static showGameIntroPopup(scene: Scene, title: string,text: string): void {
+        const formattedText = text.replace(/(.{20})/g, '$1\n');
+        CommonFunction.createDialog(
+            scene,
+            scene.cameras.main.centerX,
+            scene.cameras.main.centerY,
+            500,
+            350,
+            title,
+            formattedText,
+            () => {}
+        );
+    }
     /**
      * create a background of a scene
      * @param scene - the current scene

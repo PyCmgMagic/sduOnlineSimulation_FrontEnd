@@ -44,6 +44,7 @@ export class FrontEndGame extends Scene {
     private readonly CELL_SIZE = 30;
     private readonly BOARD_OFFSET_X = 400;
     private readonly BOARD_OFFSET_Y = 100;
+     private  TOTAL_TIME = 60; // 倒计时总秒数
     
     // 游戏状态
     private gameState: GameState;
@@ -83,6 +84,7 @@ export class FrontEndGame extends Scene {
 
     init(data: { order: CustomerOrder }) {
         this.currentOrder = data.order;
+        this.TOTAL_TIME = (300 -this.currentOrder.difficulty * 60); // 倒计时总秒数
         console.log('FrontEndGame received order:', this.currentOrder);
     }
 
@@ -94,6 +96,7 @@ export class FrontEndGame extends Scene {
         this.createNextPieceDisplay();
         this.createControls();
         this.createDecorations();
+        CommonFunction.createBookInfoButton(this, this.cameras.main.width - 50, 50, '游戏说明', '每种颜色的方块代表一种技术，在规定时间内消除更多的方块吧!最终的分数将根据得分以及技术右侧各技术的统计数量判定噢！');
         this.createParticleEffects();
         this.spawnNewPiece();
         this.startDropTimer();
@@ -163,7 +166,7 @@ export class FrontEndGame extends Scene {
         infoBg.lineStyle(3, 0xDEB887, 1);
         infoBg.strokeRoundedRect(30, 110, 300, 200, 15);
         this.scoreText = this.add.text(50, 130, '✨ 分数: 0', { fontSize: '22px', color: '#B8860B', fontFamily: '"Comic Sans MS", cursive' });
-        this.levelText = this.add.text(50, 160, '🌟 等级: 1', { fontSize: '22px', color: '#CD853F', fontFamily: '"Comic Sans MS", cursive' });
+        this.levelText = this.add.text(50, 160, '🌟 难度 等级: '+ this.currentOrder.difficulty, { fontSize: '22px', color: '#CD853F', fontFamily: '"Comic Sans MS", cursive' });
         this.linesText = this.add.text(50, 190, '🎯 消除: 0行', { fontSize: '22px', color: '#D2691E', fontFamily: '"Comic Sans MS", cursive' });
         this.timeText = this.add.text(50, 220, '⏱️ 时间: 00:00', { fontSize: '22px', color: '#8B4513', fontFamily: '"Comic Sans MS", cursive' });
         const controlsBg = this.add.graphics();
@@ -188,7 +191,6 @@ export class FrontEndGame extends Scene {
         statsBg.lineStyle(3, 0xDEB887, 1);
         statsBg.strokeRoundedRect(statsAreaX, this.BOARD_OFFSET_Y, 240, 280, 15);
         this.add.text(statsAreaX + 10, this.BOARD_OFFSET_Y + 10, '📊 完成统计', { fontSize: '20px', color: '#8B4513', fontFamily: '"Comic Sans MS", cursive' });
-
         let yPos = this.BOARD_OFFSET_Y + 50;
         const uniqueColors = [...new Set(Object.values(this.TETROMINOES).map(t => t.color))];
 
@@ -672,9 +674,15 @@ export class FrontEndGame extends Scene {
     }
 
     private startGameTimer(): void {
+        if (this.gameTimer) {
+            this.gameTimer.remove(false);
+        }
+        // 初始化剩余时间
+        this.gameState.gameTime = this.TOTAL_TIME;
+        this.updateTimeDisplay();
         this.gameTimer = this.time.addEvent({
             delay: 1000,
-            callback: this.updateGameTime,
+            callback: () => this.updateGameTime(),
             callbackScope: this,
             loop: true
         });
@@ -683,17 +691,18 @@ export class FrontEndGame extends Scene {
 
 
     private updateGameTime(): void {
-        if (!this.gameState.isGameOver && !this.gameState.isPaused) {
-            this.gameState.gameTime++;
+        if (this.gameState.isGameOver || this.gameState.isPaused) return;
+        if (this.gameState.gameTime > 0) {
+            this.gameState.gameTime--;
             this.updateTimeDisplay();
+            if (this.gameState.gameTime === 0) {
+                this.gameOver();
+            }
         }
     }
 
     private updateTimeDisplay(): void {
-        const minutes = Math.floor(this.gameState.gameTime / 60);
-        const seconds = this.gameState.gameTime % 60;
-        const timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-        this.timeText.setText(`⏱️ 时间: ${timeString}`);
+        this.timeText.setText(`⏱️ 剩余: ${this.formatTime(this.gameState.gameTime)}`);
     }
 
     private completeGame(): void {
@@ -710,8 +719,8 @@ export class FrontEndGame extends Scene {
     }
 
     private formatTime(seconds: number): string {
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+        const min = Math.floor(seconds / 60);
+        const sec = seconds % 60;
+        return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
     }
 }
