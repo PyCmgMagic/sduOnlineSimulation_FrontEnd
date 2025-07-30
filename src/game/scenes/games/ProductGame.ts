@@ -642,17 +642,19 @@ export class ProductGame extends Scene
             this.fruits.push(newFruit);
 
             if (newLevelNumber === this.TARGET_LEVEL) {
-                CommonFunction.createConfirmPopup(this, 512, 368,1024, 500, '您的产品设计已完成！', '成功啊', () => {
-                    console.log('产品开发完成，返回开发中心!');
-
-                    const task = this.currentOrder.items.find(item => item.item.id === 'product_design');
-                    if (task) {
-                        task.status = 'completed';
-                        console.log(`任务 ${task.item.name} 已标记为完成`);
-                    }
-
-                    this.scene.start('GameEntrance', {order: this.currentOrder});
-                })
+                this.scene.pause();
+                this.scene.start('GameSuccess', {currentOrder: this.currentOrder});
+                // CommonFunction.createConfirmPopup(this, 512, 368,1024, 500, '您的产品设计已完成！', '成功啊', () => {
+                //     console.log('产品开发完成，返回开发中心!');
+                //
+                //     const task = this.currentOrder.items.find(item => item.item.id === 'product_design');
+                //     if (task) {
+                //         task.status = 'completed';
+                //         console.log(`任务 ${task.item.name} 已标记为完成`);
+                //     }
+                //
+                //     this.scene.start('GameEntrance', {order: this.currentOrder});
+                // })
             }
         }
     }

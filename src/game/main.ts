@@ -11,6 +11,7 @@ import { PauseMenu } from "./scenes/PauseMenu.ts";
 import { VisionGame } from "./scenes/games/VisionGame.ts";
 import { FrontEndGame } from "./scenes/games/FrontEndGame.ts";
 import { BackEndGame } from "./scenes/games/BackEndGame.ts";
+import {GameSuccess} from "./scenes/games/GameSuccess.ts";
 
 //  Find out more information about the Game Config at:
 //  https://docs.phaser.io/api-documentation/typedef/types-core#gameconfig
@@ -37,6 +38,7 @@ const config: Phaser.Types.Core.GameConfig = {
         VisionGame,
         FrontEndGame,
         BackEndGame,
+        GameSuccess,
     ],
     physics: {
         default: "arcade",
