@@ -651,4 +651,28 @@ export class CommonFunction
         const confirmBtn = this.createButton(scene, 0, 150, 'button-normal', 'button-pressed', '确认', 21, callback);
         container.add([bg, txt, confirmBtn, tle]);
     }
+
+    /**
+     * 生成一个数组，数组元素为start到end的整数
+     * @param start 起始整数
+     * @param end 终止整数
+     * @param step 步长
+     * @returns 数组
+     */
+    public static range(start: number, end: number, step: number = 1): number[] {
+        const result: number[] = [];
+        if (step <= 0) {
+            throw new Error("step must be greater than 0");
+        }
+        if (start > end) {
+            throw new Error("start must be less than or equal to end");
+        }
+        if (start === end) {
+            return [start];
+        }
+        for (let i = start; i <= end; i += step) {
+            result.push(i);
+        }
+        return result;
+    }
 }

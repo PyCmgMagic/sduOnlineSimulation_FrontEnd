@@ -13,13 +13,12 @@ interface TreeResult {
     adjSet: Set<number>[];
 }
 
-interface VisionOrder {
-    point_num: number;
-}
-
 export class VisionGame extends Scene
 {
     private currentOrder: CustomerOrder;
+    private DIFFICULTY: number; // 难度设计为1-15
+    private pointNumArr: number[] = CommonFunction.range(5, 20);
+    private maxOffsetArr: number[] = CommonFunction.range(10, 50, 10);
     
     private nodes: Phaser.GameObjects.Graphics[] = [];
     private edges: Phaser.GameObjects.Graphics[] = [];
@@ -31,56 +30,54 @@ export class VisionGame extends Scene
     private pointNumber: number = 5;
     private nodePositions: { x: number, y: number }[] = [];
     private lastNodeIndex: number | null = null;
-    private nodeRadius: number = 15;
-    private edgeLineWidth: number = 12;
+    private nodeRadius: number = 10;
+    private edgeLineWidth: number = 5;
+    private vertexRangePadding: number = 10;
     private vertexRange = {
-        minX: 150,
-        maxX: 600,
-        minY: 120,
-        maxY: 600
+        minX: 757 + this.vertexRangePadding,
+        maxX: 1157 - this.vertexRangePadding,
+        minY: 129 + this.vertexRangePadding,
+        maxY: 529 - this.vertexRangePadding,
     };
     private maxOffset = 20;
     private nodeColors = {
-        normal: 0xf9ed69,
-        hover: 0xf9ed69,
-        selected: 0xf9ed69
+        normal: 0x5d953c,
+        hover: 0x5d953c,
+        selected: 0x5d953c
     };
     private edgeColors = {
-        // 修改欧拉图线条颜色，将 RGB 转换为十六进制
         normal: Phaser.Display.Color.GetColor(175, 175, 175),
-        // 修改玩家绘制线条颜色
-        active: 0xf08a5d
+        active: 0x5d953c
     };
+    private usedEdges: Set<string> = new Set();
+    private score: number = 0;
+    private scoreText: Phaser.GameObjects.Text;
 
     constructor() {
-        super("VisionGame");
+        super({
+            key: "VisionGame",
+        });
     };
     
     preload() {
-        this.load.image('game-vision-heart', 'assets/games/vision/heart.png');
-        this.load.image('game-vision-reset', 'assets/games/vision/trashcanOpen.png')
-        this.load.image('game-vision-redraw', 'assets/games/vision/return.png')
+        this.load.image("game-vision-background", "assets/games/vision/background.png")
+        this.load.image("game-vision-redraw", "assets/games/vision/redraw.png")
     }
 
     init(data: { order: CustomerOrder }) {
         this.currentOrder = data.order;
+        this.DIFFICULTY = this.currentOrder.difficulty;
+        this.pointNumber = this.pointNumArr[this.DIFFICULTY - 1];
+        this.maxOffset = this.maxOffsetArr[Math.floor(this.DIFFICULTY / 3)];
         console.log('VisionGame received order:', this.currentOrder);
     };
 
     create() {
         this.createBackground();
-
-        this.createGameArea();
-        
         this.initGameLevel();
-
-
-        
+        this.createScoreArea();
         this.createIntroductionArea();
-        
         this.createFunctionRectangle();
-        
-        this.createTitle();
 
         // 监听鼠标事件
         this.input.on('pointerdown', this.handlePointerDown, this);
@@ -291,14 +288,15 @@ export class VisionGame extends Scene
                     node.clear();
                     node.fillStyle(this.nodeColors.selected, 1);
                     node.fillCircle(nodePos.x, nodePos.y, this.nodeRadius);
+                    
+                    // 增加分数
+                    this.score += 10;
+                    this.scoreText.setText(this.score.toString());
                 }
                 break;
             }
         }
     }
-
-    // 新增属性，用于记录已走过的边
-    private usedEdges: Set<string> = new Set();
     
     private initGameLevel() {
         /* init game level */
@@ -309,161 +307,37 @@ export class VisionGame extends Scene
         }
     }
     
+    private createScoreArea(): void {
+        this.add.text(
+            163.5,
+            594.07,
+            "得分：",
+            {
+                fontSize: '36px',
+                color: '#FFF',
+                fontFamily: 'Arial',
+            }
+        );
+        this.scoreText = this.add.text(
+            280,
+            592,
+            "0",
+            {
+                fontSize: '42px',
+                color: '#FFF',
+                fontFamily: 'Arial',
+            }
+        );
+    }
+    
     private createBackground() {
-        // 暖色调背景颜色
-        const bgColor = 0xffe4b5; 
-        this.add.rectangle(
-            0,
-            0,
-            this.game.config.width as number,
-            this.game.config.height as number,
-            bgColor
-        ).setOrigin(0, 0);
-
-        // 定义气泡属性
-        const bubbleColors = [0xffd700, 0xffa500, 0xff6347]; 
-        const bubbleMinRadius = 10;
-        const bubbleMaxRadius = 50;
-        const bubbleCount = 5;
-
-        for (let i = 0; i < bubbleCount; i++) {
-            // 随机生成气泡属性
-            const radius = Phaser.Math.Between(bubbleMinRadius, bubbleMaxRadius);
-            const x = Phaser.Math.Between(0, this.game.config.width as number);
-            const y = Phaser.Math.Between(0, this.game.config.height as number);
-            const color = Phaser.Utils.Array.GetRandom(bubbleColors);
-            const duration = Phaser.Math.Between(3000, 8000);
-
-            // 创建气泡
-            const bubble = this.add.circle(x, y, radius, color, 0.6);
-
-            // 添加气泡动画
-            this.tweens.add({
-                targets: bubble,
-                y: y - Phaser.Math.Between(50, 200),
-                alpha: 0,
-                duration: duration,
-                ease: 'Linear',
-                repeat: -1,
-                yoyo: false
-            });
-        }
-    }
-    
-    private createGameArea() {
-        // 绘制游戏区圆角边框
-        const borderColor = Phaser.Display.Color.GetColor(255, 142, 107); // 将 RGB 转换为十六进制颜色
-        const borderWidth = 5; // 边框宽度
-        const cornerRadius = 10; // 圆角半径，可以根据需要调整
-        const borderGraphics = this.add.graphics();
-        borderGraphics.lineStyle(borderWidth, borderColor);
-        borderGraphics.strokeRoundedRect(
-            this.vertexRange.minX,
-            this.vertexRange.minY,
-            this.vertexRange.maxX - this.vertexRange.minX,
-            this.vertexRange.maxY - this.vertexRange.minY,
-            cornerRadius
-        );
-
-        // 设置暖底色和透明度
-        const bgColor = 0xffe4b5;
-        const bgAlpha = 0.6; // 透明度，范围 0 到 1
-        const bgGraphics = this.add.graphics();
-        bgGraphics.fillStyle(bgColor, bgAlpha);
-        bgGraphics.fillRoundedRect(
-            this.vertexRange.minX,
-            this.vertexRange.minY,
-            this.vertexRange.maxX - this.vertexRange.minX,
-            this.vertexRange.maxY - this.vertexRange.minY,
-            cornerRadius
-        );
-    }
-    
-    private createHealthArea() {
-        const borderColor = Phaser.Display.Color.GetColor(255, 142, 107);
-        const borderWidth = 3;
-        
-        // 定义图片宽度和间距
-        const heartImageWidth = 60;
-        const heartSpacing = 20;
-        const padding = 10; // 适当减小内边距，让矩形更紧凑
-
-        // 计算矩形的宽度和高度，紧凑高度
-        const heartRectWidth = 3 * heartImageWidth + 2 * heartSpacing + 2 * padding;
-        const heartRectHeight = heartImageWidth + 2 * padding; // 保持基于图片高度计算
-
-        // 计算矩形的位置，使其水平居中
-        const heartRectX = (this.game.config.width as number - heartRectWidth) / 2 - 30;
-        const heartRectY = this.game.config.height as number - heartRectHeight - 40;
-
-        const heartRectCornerRadius = 10; // 保持和一笔画区一样的圆角半径
-        const heartRectColor = 0xffe4b5;
-
-        // 绘制填充矩形
-        const heartRect = this.add.graphics();
-        heartRect.fillStyle(heartRectColor, 0.5);
-        heartRect.fillRoundedRect(
-            heartRectX,
-            heartRectY,
-            heartRectWidth,
-            heartRectHeight,
-            heartRectCornerRadius
-        );
-
-        // 绘制边框
-        const heartBorderGraphics = this.add.graphics();
-        heartBorderGraphics.lineStyle(borderWidth, borderColor);
-        heartBorderGraphics.strokeRoundedRect(
-            heartRectX,
-            heartRectY,
-            heartRectWidth,
-            heartRectHeight,
-            heartRectCornerRadius
-        );
-
-        const startX = heartRectX + padding;
-        const heartY = heartRectY + heartRectHeight / 2;
-
-        for (let i = 0; i < 3; i++) {
-            const heartX = startX + i * (heartImageWidth + heartSpacing) + heartImageWidth / 2;
-            this.add.image(heartX, heartY, 'game-vision-heart')
-                .setDisplaySize(heartImageWidth, heartImageWidth)
-                .setOrigin(0.5);
-        }
+        this.add.image(640, 360, "game-vision-background")
     }
     
     private createIntroductionArea() {
-        // 添加游戏介绍矩形
-        const introRectWidth = 300; // 介绍矩形宽度
-        const introRectHeight = 490; // 介绍矩形高度
-        const introRectX = (this.game.config.width as number) - introRectWidth - 20; // 右侧位置
-        const introRectY = 20; // 顶部位置
-        const introRectColor = Phaser.Display.Color.GetColor(254, 245, 217);
-        const cornerRadius = 10;
-        const borderWidth = 3;
-        const borderColor = Phaser.Display.Color.GetColor(255, 142, 107);
-    
-        // 绘制填充矩形
-        const introRect = this.add.graphics();
-        introRect.fillStyle(introRectColor, 0.7);
-        introRect.fillRoundedRect(
-            introRectX,
-            introRectY,
-            introRectWidth,
-            introRectHeight,
-            cornerRadius
-        );
-    
-        // 绘制边框
-        const introBorderGraphics = this.add.graphics();
-        introBorderGraphics.lineStyle(borderWidth, borderColor);
-        introBorderGraphics.strokeRoundedRect(
-            introRectX,
-            introRectY,
-            introRectWidth,
-            introRectHeight,
-            cornerRadius
-        );
+        const introRectWidth = 437; 
+        const introRectX = 139; 
+        const introRectY = 195; 
         
         const introText = `游戏介绍：
         🎯游戏目标：
@@ -472,9 +346,7 @@ export class VisionGame extends Scene
         1.点击游戏中的节点，开启你的冒险之旅。
         2.按住鼠标并拖动，让路线像魔法线条一样连接各个节点。
         3.松开鼠标，结束当前绘制，看看你是否成功完成挑战。
-        4.你可以使用按钮来清除当前绘制以重新开始你的冒险或者重新生成冒险图。
-        💡小提示：
-        仔细观察节点和路线，规划好你的路径，每一步都至关重要哦！祝你好运，一笔画大师！`;
+        4.你可以使用按钮来清除当前绘制以重新开始你的冒险或者重新生成冒险图。`;
         const textStyle = {
             fontSize: '18px',
             fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
@@ -482,102 +354,53 @@ export class VisionGame extends Scene
             wordWrap: { width: introRectWidth - 20, useAdvancedWrap: true },
             padding: { left: 10, right: 10, top: 10, bottom: 10 }
         };
-        this.add.text(introRectX + 10, introRectY + 10, introText, textStyle);
+        this.add.text(introRectX + 10, introRectY, introText, textStyle);
+        
+        // tips text
+        const tipsText = "小提示：按住鼠标不要松手哦~";
+        const tipsTextStyle = {
+            fontSize: '18px',
+            fontFamily: 'Arial',
+            color: '#fff',
+        }
+        this.add.text(850, 62, tipsText, tipsTextStyle)
     }
     
     private createFunctionRectangle() {
-        const resetImageWidth = 60;
-        const redrawImageWidth = 60;
-        const imageSpacing = 20;
-        const padding = 10; // 内边距
-    
-        // 计算矩形的宽度和高度
-        const resetRectWidth = resetImageWidth + redrawImageWidth + imageSpacing + 2 * padding;
-        const resetRectHeight = Math.max(resetImageWidth, redrawImageWidth) + 2 * padding;
-    
-        // 计算矩形的位置，使其位于左下角
-        const resetRectX = 150;
-        const resetRectY = this.game.config.height as number - resetRectHeight - 40;
-    
-        const resetRectCornerRadius = 10; // 圆角半径
-        const resetRectColor = 0xffe4b5;
-        const borderColor = Phaser.Display.Color.GetColor(255, 142, 107); // 边框颜色
-        const borderWidth = 3; // 边框宽度
-    
-        // 绘制填充矩形
-        const resetRect = this.add.graphics();
-        resetRect.fillStyle(resetRectColor, 0.5);
-        resetRect.fillRoundedRect(
-            resetRectX,
-            resetRectY,
-            resetRectWidth,
-            resetRectHeight,
-            resetRectCornerRadius
-        );
-    
-        // 绘制边框
-        const resetBorderGraphics = this.add.graphics();
-        resetBorderGraphics.lineStyle(borderWidth, borderColor);
-        resetBorderGraphics.strokeRoundedRect(
-            resetRectX,
-            resetRectY,
-            resetRectWidth,
-            resetRectHeight,
-            resetRectCornerRadius
-        );
-    
-        const startX = resetRectX + padding;
-        const imageY = resetRectY + resetRectHeight / 2;
-    
-        // 添加 game-vision-reset 图片并设置点击事件和 hover 效果
-        const resetImage = this.add.image(startX + resetImageWidth / 2, imageY, 'game-vision-reset')
-            .setDisplaySize(resetImageWidth, resetImageWidth)
-            .setOrigin(0.5)
-            .setInteractive(); // 启用交互
-        resetImage.on('pointerdown', () => {
-            this.resetDrawing();
-        });
-        resetImage.on('pointerover', () => {
-            resetImage.setDisplaySize(resetImageWidth * 1.1, resetImageWidth * 1.1);
-            resetImage.setAlpha(0.9);
-        });
-        resetImage.on('pointerout', () => {
-            resetImage.setDisplaySize(resetImageWidth, resetImageWidth);
-            resetImage.setAlpha(1);
+        const redrawWidth: number = 46;
+        const redrawHeight: number = 51;
+        const radius = 35;
+        
+        const circleBg = this.add.graphics();
+        circleBg.fillStyle(0xc4d9b7, 1);
+        circleBg.fillCircle(1049, 595, radius);
+        
+        this.add.text(1033, 650, '重置', {
+            fontSize: '18px',
+            color: '#fff',
+            fontFamily: 'Arial',
         });
     
         // 添加 game-vision-redraw 图片并设置点击事件和 hover 效果
-        const redrawImage = this.add.image(startX + resetImageWidth + imageSpacing + redrawImageWidth / 2, imageY, 'game-vision-redraw')
-            .setDisplaySize(redrawImageWidth, redrawImageWidth)
+        const redrawImage = this.add.image(1050, 593, 'game-vision-redraw')
+            .setDisplaySize(redrawWidth, redrawHeight)
             .setOrigin(0.5)
             .setInteractive(); // 启用交互
         redrawImage.on('pointerdown', () => {
-            this.regenerateEulerianLevel();
+            redrawImage.setDisplaySize(redrawWidth * 0.9, redrawHeight * 0.9);
         });
         redrawImage.on('pointerover', () => {
-            redrawImage.setDisplaySize(resetImageWidth * 1.1, resetImageWidth * 1.1);
+            redrawImage.setDisplaySize(redrawWidth * 1.1, redrawHeight * 1.1);
             redrawImage.setAlpha(0.9);
         });
         redrawImage.on('pointerout', () => {
-            redrawImage.setDisplaySize(resetImageWidth, redrawImageWidth);
+            redrawImage.setDisplaySize(redrawWidth, redrawHeight);
             redrawImage.setAlpha(1);
         });
-    }
-    
-    private createTitle() {
-        const titleText: string = '视觉绘制';
-        const textStyle = {
-            fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
-            fontSize: '40px',
-            color: '#654321',
-            stroke: '#ffffff',
-        }
-        this.add.text(
-            this.cameras.main.width / 2 - 270,
-            70,
-            titleText,
-            textStyle
-        ).setOrigin(0.5);
+        redrawImage.on('pointerup', () => {
+            redrawImage.setDisplaySize(redrawWidth, redrawHeight);
+            this.resetDrawing();
+        })
     }
 
     private resetDrawing() {
@@ -602,6 +425,10 @@ export class VisionGame extends Scene
             this.tempLine.destroy();
             this.tempLine = null;
         }
+        
+        // 重置分数
+        this.score = 0;
+        this.scoreText.setText(this.score.toString());
     }
 
     // 新增重新生成欧拉图方法
