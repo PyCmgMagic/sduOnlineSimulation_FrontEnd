@@ -69,11 +69,11 @@ export class Boot extends Scene
      */
     private createSimpleBootUI(): void
     {
-        const centerX = 512;
-        const centerY = 384;
+        const centerX = this.cameras.main.centerX;
+        const centerY = this.cameras.main.centerY;
         
         // 创建简单背景
-        this.add.rectangle(centerX, centerY, 1024, 768, 0x000000);
+        this.add.rectangle(centerX, centerY, 1280, 720, 0x000000);
         
         // 创建版权信息
         this.add.text(centerX, 700, '© 2024 学线模拟经营游戏', {
@@ -95,8 +95,8 @@ export class Boot extends Scene
      */
     private displayLogo(): void
     {
-        const centerX = 512;
-        const centerY = 384;
+        const centerX = this.cameras.main.centerX;
+        const centerY =     this.cameras.main.centerY;
         
         // 创建logo图片
         const logo = this.add.image(centerX, centerY, 'logo');

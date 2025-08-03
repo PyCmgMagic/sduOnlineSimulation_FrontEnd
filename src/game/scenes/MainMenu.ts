@@ -11,10 +11,6 @@ export class MainMenu extends Scene
     
     // 音频
     backgroundMusic: Phaser.Sound.BaseSound | null;
-    
-    // 放大镜效果
-    private magnifier: GameObjects.RenderTexture | null;
-    private magnifierMask: Phaser.Display.Masks.GeometryMask | null;
 
     // 设置按钮
     settingsButton: GameObjects.Image;
@@ -44,13 +40,12 @@ export class MainMenu extends Scene
     private createBackground(): void
     {
         // 主背景图片
-        this.background = this.add.image(512, 384, 'background');
+        this.background = this.add.image(0, 0, 'background');
         
         // 确保背景图片填充整个屏幕
         const scaleX = this.cameras.main.width / this.background.width;
         const scaleY = this.cameras.main.height / this.background.height;
-        const scale = Math.max(scaleX, scaleY); 
-        this.background.setScale(scale).setOrigin(0.5);
+        this.background.setScale(scaleX,scaleY).setOrigin(0, 0);
     }
 
     /** 
