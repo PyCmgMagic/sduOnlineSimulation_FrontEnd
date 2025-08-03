@@ -58,11 +58,11 @@ export class MainMenu extends Scene
         this.startButton.setDepth(10);
     
         // 画一个矩形按钮
-        this.startButton.fillStyle(0x1890ff, 0); // 透明填充
+        this.startButton.fillStyle(0x000000, 0); // 透明填充
         this.startButton.fillRoundedRect(0, 0, 220, 150, 10);
     
         // 设置位置
-        this.startButton.setPosition(600, 500);
+        this.startButton.setPosition(740, 500);
         this.startButton.rotation = Phaser.Math.DegToRad(-10);
     
         // 设置可交互区域

@@ -709,7 +709,7 @@ export class FrontEndGame extends Scene {
     }
     private calculateScoreRate(): number {
         const baseScore = this.gameState.score;
-        const { rate: completionRate, progress } = this.calculateCompletionRate();
+        const { rate: completionRate } = this.calculateCompletionRate();
         const scoreRate = completionRate + baseScore / 20000;
         return Math.round(scoreRate * 100) / 100;
     }
@@ -759,7 +759,7 @@ export class FrontEndGame extends Scene {
             const progressText = `${techName}: ${data.current} / ${data.target} 组`;
             const textObj = this.add.text(panelX + 70, yPos, progressText, { fontSize: '18px', color: '#A0522D', fontFamily: '"Arial", sans-serif' });
             if (data.current >= data.target) {
-                textObj.setColor('#32CD32'); // Green for completed
+                textObj.setColor('#32CD32'); 
             }
             yPos += 25;
         });

@@ -151,7 +151,6 @@ export class Game extends Scene
     private createWorld(): void {
         const centerX = this.cameras.main.width / 2;
         const cafeScale = 4;
-
         const wall = this.add.image(centerX, 0, 'houseBeige');
         wall.setOrigin(0.5, 0);
         const wallImage = this.textures.get('houseBeige');
@@ -434,24 +433,30 @@ export class Game extends Scene
             difficulty: Math.floor(Math.random() * 5) + 1 // 随机难度系数 (1-5)
         };
     }
+// --- UI & DATA UPDATES ---
 
-    // --- UI & DATA UPDATES ---
-
-    private updateOrdersDisplay(): void {
-        this.ordersPanel.each((child: any) => {
-            if (child.isOrderItem) child.destroy();
-        });
-        
-        this.customerOrders.forEach((order, index) => {
-            if (order.status === 'waiting' || order.status === 'preparing') {
-                const cardHeight = 250;
-                const spacing = 20;
-                const orderY = -30 + (cardHeight / 2) + (index * (cardHeight + spacing));
-                this.createOrderDisplay(order, orderY);
-            }
-        });
-    }
-
+private updateOrdersDisplay(): void {
+    // 首先，移除所有旧的订单卡片UI
+    this.ordersPanel.each((child: any) => {
+        if (child.isOrderItem) {
+            child.destroy();
+        }
+    });
+    
+    // 筛选出所有状态为 'waiting' 或 'preparing' 的活动订单
+    const ordersToDisplay = this.customerOrders.filter(
+        order => order.status === 'waiting' || order.status === 'preparing'
+    );
+    
+    // 遍历筛选后的活动订单列表，并为它们创建显示卡片
+    ordersToDisplay.forEach((order, index) => {
+        const cardHeight = 250;
+        const spacing = 20;
+        // 使用筛选后列表的索引来计算Y轴位置，确保布局紧凑无间隙
+        const orderY = -30 + (cardHeight / 2) + (index * (cardHeight + spacing));
+        this.createOrderDisplay(order, orderY);
+    });
+}
     private createOrderDisplay(order: CustomerOrder, y: number): void {
         const orderContainer = this.add.container(0, y);
         (orderContainer as any).isOrderItem = true;
