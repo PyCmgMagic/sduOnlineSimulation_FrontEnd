@@ -803,9 +803,9 @@ private createHoldButtonArea(): void {
         const panelY = (this.cameras.main.height - panelHeight) / 2;
 
         const panel = this.add.graphics();
-        panel.fillStyle(0xFFF8DC, 0.95);
+        panel.fillStyle(0x9ED0F3, 0.95);
         panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
-        panel.lineStyle(4, 0xDEB887, 1);
+        panel.lineStyle(4, 0x9ED0F3, 1);
         panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 20);
 
         this.add.text(panelX + panelWidth / 2, panelY + 40, title, {
