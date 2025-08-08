@@ -127,10 +127,10 @@ export class CommonFunction
         title: string = '',
         text: string = '',
         callback?: () => void,
-        scale: number = 0.37,
+        scale: number = 1,
         depth: number = 100
     ): GameObjects.Image {
-        const icon = scene.add.image(x, y, 'book').setInteractive().setScale(scale).setDepth(depth);
+        const icon = scene.add.image(x, y, 'zhinan').setInteractive().setScale(scale).setDepth(depth);
         icon.on('pointerover', () => {
             scene.tweens.add({ targets: icon, scale: scale + 0.02, duration: 120 });
         });

@@ -1,4 +1,5 @@
 import { Scene } from 'phaser';
+import { FrontEndGame } from './games/FrontEndGame';
 
 export class Preloader extends Scene
 {
@@ -821,8 +822,13 @@ export class Preloader extends Scene
         });
         this.load.image('game-product-platform', 'platform.png');
         this.load.setPath('assets/'); // 恢复资源路径
+        //加载前端游戏资源
+        this.load.setPath('assets/games/front-end');
+        this.load.image('frontEndBg','frontEndBg2.png')
+        this.load.image('zhinan','右上角指南.png')
     }
 
+        
     /**
      * 加载音频资源
      */

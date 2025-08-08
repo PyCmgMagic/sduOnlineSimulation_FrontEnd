@@ -47,9 +47,9 @@ export class FrontEndGame extends Scene {
     // 游戏配置
     private readonly BOARD_WIDTH = 10;
     private readonly BOARD_HEIGHT = 20;
-    private readonly CELL_SIZE = 30;
-    private readonly BOARD_OFFSET_X = 400;
-    private readonly BOARD_OFFSET_Y = 100;
+    private readonly CELL_SIZE = 22;
+    private readonly BOARD_OFFSET_X = 360;
+    private readonly BOARD_OFFSET_Y = 85;
     private  TOTAL_TIME = 60; // 倒计时总秒数
 
     // 游戏状态
@@ -71,8 +71,9 @@ export class FrontEndGame extends Scene {
     private pauseText: Phaser.GameObjects.Text | null = null;
     private colorCountTexts: Map<number, Phaser.GameObjects.Text> = new Map();
     private colorProgressBars: Map<number, Phaser.GameObjects.Graphics> = new Map();
-    private restartButton: Phaser.GameObjects.Container | null = null;
-
+    private restartButton: Phaser.GameObjects.Graphics | null = null;
+    private pauseButton: Phaser.GameObjects.Graphics | null = null;
+    private holdButton: Phaser.GameObjects.Graphics | null = null;
     // 粒子效果
     private particleEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
 
@@ -98,15 +99,16 @@ export class FrontEndGame extends Scene {
     }
 
     create() {
-        this.createWarmBackground();
+        this.createBackground();
         this.initializeGameState();
         this.createGameUI();
         this.updateColorCountsDisplay(); // 初始调用以显示目标
         this.createBoard();
         this.createNextPieceDisplay();
         this.createControls();
-        this.createDecorations();
-        CommonFunction.createBookInfoButton(this, this.cameras.main.width - 50, 50, '游戏说明', '每种颜色的方块代表一种技术，在规定时间内消除更多的方块吧!最终的分数将根据得分以及技术右侧各技术的统计数量判定噢！');
+        this.createStopArea()
+        this.createHoldButtonArea();
+        CommonFunction.createBookInfoButton(this, this.cameras.main.width - 50, 50, '游戏说明', '每种颜色的方块代表一种技术，在规定时间内消除更多的方块吧!最终的分数将根据得分以及技术右侧各技术的统计数量判定噢！Tip:按↓键可以加速下落，获取更多分数噢！');
         this.createParticleEffects();
         this.spawnNewPiece();
         this.startDropTimer();
@@ -133,36 +135,27 @@ export class FrontEndGame extends Scene {
         console.log("Initialized Targets:", this.gameTargets);
     }
 
-    private createWarmBackground(): void {
-        const topColor = Phaser.Display.Color.ValueToColor('#FFF4E6');
-        const bottomColor = Phaser.Display.Color.ValueToColor('#FFE4B5');
-        const bg = this.add.graphics();
-        bg.fillGradientStyle(topColor.color, topColor.color, bottomColor.color, bottomColor.color, 1);
-        bg.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
+    private createBackground(): void {
 
-        for (let i = 0; i < 8; i++) {
-            const x = Math.random() * this.cameras.main.width;
-            const y = Math.random() * this.cameras.main.height;
-            const radius = 20 + Math.random() * 40;
-            const alpha = 0.1 + Math.random() * 0.1;
-            const circle = this.add.graphics();
-            circle.fillStyle(0xFFB366, alpha);
-            circle.fillCircle(x, y, radius);
-            this.tweens.add({
-                targets: circle, y: y - 20, duration: 3000 + Math.random() * 2000,
-                ease: 'Sine.easeInOut', yoyo: true, repeat: -1
-            });
-        }
+        // 添加预加载的背景图片
+        const bgImage = this.add.image(0, 0, 'frontEndBg');
+        bgImage.setOrigin(0, 0);
+        
+        // 缩放背景图片以适应屏幕
+        const scaleX = this.cameras.main.width / bgImage.width;
+        const scaleY = this.cameras.main.height / bgImage.height;
+        const scale = Math.max(scaleX, scaleY);
+        bgImage.setScale(scale);
+        
+        // 居中背景
+        bgImage.setPosition(
+            (this.cameras.main.width - bgImage.displayWidth) / 2,
+            (this.cameras.main.height - bgImage.displayHeight) / 2
+        );
+
     }
 
-    private createDecorations(): void {
-        const borderGraphics = this.add.graphics();
-        borderGraphics.lineStyle(4, 0xFF8C69, 1);
-        borderGraphics.strokeRoundedRect(this.BOARD_OFFSET_X - 10, this.BOARD_OFFSET_Y - 10, this.BOARD_WIDTH * this.CELL_SIZE + 20, this.BOARD_HEIGHT * this.CELL_SIZE + 20, 8);
-        const shadowGraphics = this.add.graphics();
-        shadowGraphics.fillStyle(0xFFB366, 0.1);
-        shadowGraphics.fillRoundedRect(this.BOARD_OFFSET_X - 5, this.BOARD_OFFSET_Y - 5, this.BOARD_WIDTH * this.CELL_SIZE + 10, this.BOARD_HEIGHT * this.CELL_SIZE + 10, 5);
-    }
+
 
     private initializeGameState(): void {
         const baseInterval = 1150;
@@ -190,42 +183,14 @@ export class FrontEndGame extends Scene {
     }
 
     private createGameUI(): void {
-        const titleText = this.add.text(50, 50, '前端开发', {
-            fontSize: '32px', color: '#8B4513', fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
-            stroke: '#FFF8DC', strokeThickness: 6
-        });
-        titleText.setShadow(3, 3, 'rgba(255,140,0,0.3)', 5, true, true);
-        const infoBg = this.add.graphics();
-        infoBg.fillStyle(0xFFF8DC, 0.8);
-        infoBg.fillRoundedRect(30, 110, 300, 200, 15);
-        infoBg.lineStyle(3, 0xDEB887, 1);
-        infoBg.strokeRoundedRect(30, 110, 300, 200, 15);
-        this.scoreText = this.add.text(50, 130, '✨ 分数: 0', { fontSize: '22px', color: '#B8860B', fontFamily: '"Comic Sans MS", cursive' });
-        this.levelText = this.add.text(50, 160, '🌟 难度 等级: '+ this.currentOrder.difficulty, { fontSize: '22px', color: '#CD853F', fontFamily: '"Comic Sans MS", cursive' });
-        this.linesText = this.add.text(50, 190, '🎯 消除: 0行', { fontSize: '22px', color: '#D2691E', fontFamily: '"Comic Sans MS", cursive' });
-        this.timeText = this.add.text(50, 220, '⏱️ 时间: 00:00', { fontSize: '22px', color: '#8B4513', fontFamily: '"Comic Sans MS", cursive' });
-        const controlsBg = this.add.graphics();
-        controlsBg.fillStyle(0xFFF8DC, 0.8);
-        controlsBg.fillRoundedRect(30, 330, 300, 180, 15);
-        controlsBg.lineStyle(3, 0xDEB887, 1);
-        controlsBg.strokeRoundedRect(30, 330, 300, 180, 15);
-        this.add.text(50, 340, '🎮 操作指南', { fontSize: '20px', color: '#8B4513', fontFamily: '"Comic Sans MS", cursive' });
-        const controls = ['← → 左右移动', '↓ 加速下落', '↑ 旋转方块', '空格 暂停游戏', 'C 暂存方块'];
-        controls.forEach((control, index) => {
-            this.add.text(50, 370 + index * 25, control, { fontSize: '16px', color: '#A0522D', fontFamily: '"Arial", sans-serif' });
-        });
-        this.createDisplayArea(50, 530, '🔮 下一个');
-        this.createDisplayArea(200, 530, '💾 暂存');
+        this.scoreText = this.add.text(595, 130, '✨ 分数: 0', { fontSize: '22px', color: '#B8860B', fontFamily: '"Comic Sans MS", cursive' });
+        this.levelText = this.add.text(595, 160, '🌟 难度 等级: '+ this.currentOrder.difficulty, { fontSize: '22px', color: '#CD853F', fontFamily: '"Comic Sans MS", cursive' });
+        this.linesText = this.add.text(595, 190, '🎯 消除: 0行', { fontSize: '22px', color: '#D2691E', fontFamily: '"Comic Sans MS", cursive' });
+        this.timeText = this.add.text(595, 220, '⏱️ 时间: 00:00', { fontSize: '22px', color: '#8B4513', fontFamily: '"Comic Sans MS", cursive' });
         this.heldPieceGraphics = this.add.graphics();
 
-        const statsAreaX = this.BOARD_OFFSET_X + this.BOARD_WIDTH * this.CELL_SIZE + 30;
-        const statsBg = this.add.graphics();
-        statsBg.fillStyle(0xFFF8DC, 0.8);
-        statsBg.fillRoundedRect(statsAreaX, this.BOARD_OFFSET_Y, 240, 280, 15);
-        statsBg.lineStyle(3, 0xDEB887, 1);
-        statsBg.strokeRoundedRect(statsAreaX, this.BOARD_OFFSET_Y, 240, 280, 15);
-        this.add.text(statsAreaX + 10, this.BOARD_OFFSET_Y + 10, '📊 开发目标', { fontSize: '20px', color: '#8B4513', fontFamily: '"Comic Sans MS", cursive' });
-        let yPos = this.BOARD_OFFSET_Y + 50;
+            const statsAreaX = 950
+        let yPos = 370;
         const uniqueColors = [...new Set(Object.values(this.TETROMINOES).map(t => t.color))];
         const BAR_MAX_WIDTH = 100;
         const BAR_HEIGHT = 18;
@@ -263,35 +228,69 @@ export class FrontEndGame extends Scene {
         bg.strokeRoundedRect(x - 10, y - 10, 120, 100, 10);
         this.add.text(x, y, title, { fontSize: '18px', color: '#8B4513', fontFamily: '"Comic Sans MS", cursive' });
     }
-
     private createBoard(): void {
-        const boardBg = this.add.graphics();
-        boardBg.fillStyle(0xFFFAF0, 0.9);
-        boardBg.fillRect(this.BOARD_OFFSET_X, this.BOARD_OFFSET_Y, this.BOARD_WIDTH * this.CELL_SIZE, this.BOARD_HEIGHT * this.CELL_SIZE);
         this.boardGraphics = this.add.graphics();
         this.drawBoard();
     }
 
-    private drawBoard(): void {
-        this.boardGraphics.clear();
-        this.boardGraphics.lineStyle(1, 0xF5DEB3, 0.4);
-        for (let i = 1; i < this.BOARD_WIDTH; i++) {
-            this.boardGraphics.lineBetween(this.BOARD_OFFSET_X + i * this.CELL_SIZE, this.BOARD_OFFSET_Y, this.BOARD_OFFSET_X + i * this.CELL_SIZE, this.BOARD_OFFSET_Y + this.BOARD_HEIGHT * this.CELL_SIZE);
-        }
-        for (let i = 1; i < this.BOARD_HEIGHT; i++) {
-            this.boardGraphics.lineBetween(this.BOARD_OFFSET_X, this.BOARD_OFFSET_Y + i * this.CELL_SIZE, this.BOARD_OFFSET_X + this.BOARD_WIDTH * this.CELL_SIZE, this.BOARD_OFFSET_Y + i * this.CELL_SIZE);
-        }
-        for (let y = 0; y < this.BOARD_HEIGHT; y++) {
-            for (let x = 0; x < this.BOARD_WIDTH; x++) {
-                if (this.gameState.board[y][x] !== 0) {
-                    this.drawCell(this.boardGraphics, x, y, this.gameState.board[y][x]);
-                }
+private drawBoard(): void {
+    this.boardGraphics.clear();
+
+    // 绘制外边框
+    this.boardGraphics.lineStyle(1, 0x000000, 1);
+    this.boardGraphics.strokeRect(
+        this.BOARD_OFFSET_X,
+        this.BOARD_OFFSET_Y,
+        this.BOARD_WIDTH * this.CELL_SIZE,
+        this.BOARD_HEIGHT * this.CELL_SIZE
+    );
+
+    // 绘制内部网格线
+    this.boardGraphics.lineStyle(1, 0x000000, 0.4);
+    for (let i = 1; i < this.BOARD_WIDTH; i++) {
+        this.boardGraphics.lineBetween(
+            this.BOARD_OFFSET_X + i * this.CELL_SIZE,
+            this.BOARD_OFFSET_Y,
+            this.BOARD_OFFSET_X + i * this.CELL_SIZE,
+            this.BOARD_OFFSET_Y + this.BOARD_HEIGHT * this.CELL_SIZE
+        );
+    }
+    for (let i = 1; i < this.BOARD_HEIGHT; i++) {
+        this.boardGraphics.lineBetween(
+            this.BOARD_OFFSET_X,
+            this.BOARD_OFFSET_Y + i * this.CELL_SIZE,
+            this.BOARD_OFFSET_X + this.BOARD_WIDTH * this.CELL_SIZE,
+            this.BOARD_OFFSET_Y + i * this.CELL_SIZE
+        );
+    }
+
+this.boardGraphics.fillStyle(0x000000, 0.8); 
+const nodeRadius = 1.1; 
+
+for (let y = 0; y <= this.BOARD_HEIGHT; y++) {
+    for (let x = 0; x <= this.BOARD_WIDTH; x++) {
+        this.boardGraphics.fillCircle(
+            this.BOARD_OFFSET_X + x * this.CELL_SIZE,
+            this.BOARD_OFFSET_Y + y * this.CELL_SIZE,
+            nodeRadius
+        );
+    }
+}
+
+    // 绘制游戏方块
+    for (let y = 0; y < this.BOARD_HEIGHT; y++) {
+        for (let x = 0; x < this.BOARD_WIDTH; x++) {
+            if (this.gameState.board[y][x] !== 0) {
+                this.drawCell(this.boardGraphics, x, y, this.gameState.board[y][x]);
             }
         }
-        if (this.gameState.currentPiece) {
-            this.drawCurrentPiece();
-        }
     }
+
+    // 绘制当前正在下落的方块
+    if (this.gameState.currentPiece) {
+        this.drawCurrentPiece();
+    }
+}
 
     private drawCell(graphics: Phaser.GameObjects.Graphics, x: number, y: number, color: number): void {
         const pixelX = this.BOARD_OFFSET_X + x * this.CELL_SIZE;
@@ -358,14 +357,82 @@ export class FrontEndGame extends Scene {
     private drawNextPiece(): void {
         this.nextPieceGraphics.clear();
         if (this.gameState.nextPiece) {
-            this.drawDisplayPiece(this.nextPieceGraphics, this.gameState.nextPiece, 40, 540, 120, 100);
+            this.drawDisplayPiece(this.nextPieceGraphics, this.gameState.nextPiece, 608, 300, 120, 100);
         }
     }
 
-    private createControls(): void {
-        this.restartButton = CommonFunction.createButton(this, this.cameras.main.width - 150, this.cameras.main.height - 100, 'button-normal', 'button-pressed', '🔄 重新开始', 10, () => this.restartGame(), true, 0.8);
-    }
-
+private createControls(): void {
+    this.restartButton = this.add.graphics();
+    this.restartButton.fillStyle(0x000000, 0);
+    const buttonHitArea = new Phaser.Geom.Rectangle(622, 550, 60, 70);
+    this.restartButton.fillRoundedRect(
+        buttonHitArea.x,
+        buttonHitArea.y,
+        buttonHitArea.width,
+        buttonHitArea.height,
+        10
+    );
+    // 将此 Graphics 对象设置为可交互的，并指定其点击区域
+    this.restartButton.setInteractive(buttonHitArea, Phaser.Geom.Rectangle.Contains);
+    // 绑定点击事件
+    this.restartButton.on('pointerdown', () => {
+        this.restartGame();
+    });
+    this.restartButton.on('pointerover', () => {
+        this.input.setDefaultCursor('pointer'); // 鼠标变成手形
+    });
+    this.restartButton.on('pointerout', () => {
+        this.input.setDefaultCursor('default'); // 鼠标恢复默认
+    });
+}
+private createStopArea(): void {
+    this.pauseButton = this.add.graphics();
+    this.pauseButton.fillStyle(0x000000, 0);
+    const buttonHitArea = new Phaser.Geom.Rectangle(520, 550, 60, 70);
+    this.pauseButton.fillRoundedRect(
+        buttonHitArea.x,
+        buttonHitArea.y,
+        buttonHitArea.width,
+        buttonHitArea.height,
+        10
+    );
+    // 将此 Graphics 对象设置为可交互的，并指定其点击区域
+    this.pauseButton.setInteractive(buttonHitArea, Phaser.Geom.Rectangle.Contains);
+    // 绑定点击事件
+    this.pauseButton.on('pointerdown', () => {
+        this.togglePause();
+    });
+    this.pauseButton.on('pointerover', () => {
+        this.input.setDefaultCursor('pointer'); // 鼠标变成手形
+    });
+    this.pauseButton.on('pointerout', () => {
+        this.input.setDefaultCursor('default'); // 鼠标恢复默认
+    });
+}
+private createHoldButtonArea(): void {
+    this.holdButton = this.add.graphics();
+    this.holdButton.fillStyle(0x000000, 0);
+    const buttonHitArea = new Phaser.Geom.Rectangle(730, 550, 60, 70);
+    this.holdButton.fillRoundedRect(    
+        buttonHitArea.x,
+        buttonHitArea.y,
+        buttonHitArea.width,
+        buttonHitArea.height,
+        10
+    );
+    // 将此 Graphics 对象设置为可交互的，并指定其点击区域
+    this.holdButton.setInteractive(buttonHitArea, Phaser.Geom.Rectangle.Contains);  
+    // 绑定点击事件
+    this.holdButton.on('pointerdown', () => {
+        this.holdPiece();
+    });
+    this.holdButton.on('pointerover', () => {
+        this.input.setDefaultCursor('pointer'); // 鼠标变成手形
+    });
+    this.holdButton.on('pointerout', () => {
+        this.input.setDefaultCursor('default'); // 鼠标恢复默认
+    });
+}
     private setupKeyboardControls(): void {
         if (!this.input.keyboard) return;
         this.input.keyboard.on('keydown-LEFT', () => this.movePiece(-1, 0));
@@ -398,7 +465,7 @@ export class FrontEndGame extends Scene {
     private drawHeldPiece(): void {
         this.heldPieceGraphics.clear();
         if (this.gameState.heldPiece) {
-            this.drawDisplayPiece(this.heldPieceGraphics, this.gameState.heldPiece, 190, 540, 120, 100);
+            this.drawDisplayPiece(this.heldPieceGraphics, this.gameState.heldPiece, 600, 420, 130, 110);
         }
     }
 
@@ -590,7 +657,7 @@ export class FrontEndGame extends Scene {
     private updateColorCountsDisplay(): void {
         const BAR_MAX_WIDTH = 100;
         const BAR_HEIGHT = 18;
-        const statsAreaX = this.BOARD_OFFSET_X + this.BOARD_WIDTH * this.CELL_SIZE + 30;
+        const statsAreaX = 950;
         const barStartX = statsAreaX + 20;
 
         for (const [color, barFill] of this.colorProgressBars.entries()) {
