@@ -30,7 +30,7 @@ export class Boot extends Scene
         this.load.setPath('assets/');
         
         // 只加载Preloader场景需要的最基础资源
-        this.load.image('background', 'bg.png');
+        this.load.image('background', 'main-bg.png');
         this.load.image('loading-bg', 'bg.png'); // 备用背景
         this.load.image('logo', 'logo.png'); // 加载logo图片
         this.load.image('pure-logo', 'pure-logo.png'); // 加载pure-logo图片

@@ -5,9 +5,10 @@ export class MainMenu extends Scene
 {
     // 背景
     background: GameObjects.Image;
-    
+     // 开始按钮
+    startButton: GameObjects.Image;
     // 菜单按钮
-    startButton: GameObjects.Graphics;
+    startButtonArea: GameObjects.Graphics;
     
     // 音频
     backgroundMusic: Phaser.Sound.BaseSound | null;
@@ -25,7 +26,7 @@ export class MainMenu extends Scene
         // 创建背景
         this.createBackground();
         //创建开始按钮区域
-        this.createStartButtonArea();
+        this.createStartButton()
         // 创建设置按钮
         this.createSettingsButton();
         // 设置音频（如果有的话）
@@ -47,32 +48,62 @@ export class MainMenu extends Scene
         const scaleY = this.cameras.main.height / this.background.height;
         this.background.setScale(scaleX,scaleY).setOrigin(0, 0);
     }
-
-    /** 
-     * 创建开始按钮区域
+    /**
+     * 创建开始按钮
      */
-    private createStartButtonArea(): void
-    {
-        this.startButton = this.add.graphics();
-        this.startButton.setScale(1.2);
-        this.startButton.setDepth(10);
+private createStartButton(): void {
+    // 创建按钮图片，初始位置可以随意，因为我们马上会重新定位它
+    this.startButton = this.add.image(0, 0, 'start-button');
     
-        // 画一个矩形按钮
-        this.startButton.fillStyle(0x000000, 0); // 透明填充
-        this.startButton.fillRoundedRect(0, 0, 220, 150, 10);
-    
-        // 设置位置
-        this.startButton.setPosition(740, 500);
-        this.startButton.rotation = Phaser.Math.DegToRad(-10);
-    
-        // 设置可交互区域
-        this.startButton.setInteractive(new Phaser.Geom.Rectangle(0, 0, 200, 100), Phaser.Geom.Rectangle.Contains);
-    
-        // 绑定点击事件
-        this.startButton.on('pointerdown', () => {
-            this.startGame();
+    // --- 1. 定位按钮 ---
+    // 获取屏幕的中心点坐标
+    const centerX = this.cameras.main.width / 2;
+    const centerY = this.cameras.main.height / 2;
+    // 将按钮设置在屏幕中心
+    this.startButton.setPosition(centerX+250, centerY+168);
+
+    this.startButton.setOrigin(0.5); // 设置锚点为中心，这样缩放和定位都以中心为准
+    this.startButton.setScale(0.25);  // 设置初始大小
+    this.startButton.setDepth(20);   // 确保按钮在最上层
+    this.startButton.setInteractive({ useHandCursor: true }); // 设置交互并显示手形光标
+
+    // 鼠标按下时的事件
+    this.startButton.on('pointerdown', () => {
+        // 创建一个短暂的 "按下" 动画
+        this.tweens.add({
+            targets: this.startButton,
+            scale: 0.23, // 按下时稍微再缩小一点
+            duration: 100, // 动画持续时间（毫秒）
+            ease: 'Power1', // 缓动函数，使动画更自然
+            onComplete: () => {
+                // 按下动画完成后立即开始游戏
+                this.startGame();
+            }
         });
-    }
+    });
+
+    // 鼠标悬停时的事件
+    this.startButton.on('pointerover', () => {
+        // 创建一个平滑放大的动画
+        this.tweens.add({
+            targets: this.startButton,
+            scale: 0.32, // 目标大小
+            duration: 200, // 动画持续时间
+            ease: 'Power2' // 使用一个更有弹性的缓动函数
+        });
+    });
+
+    // 鼠标离开时的事件
+    this.startButton.on('pointerout', () => {
+        // 创建一个平滑恢复到原始大小的动画
+        this.tweens.add({
+            targets: this.startButton,
+            scale: 0.25, // 恢复到初始大小
+            duration: 200,
+            ease: 'Power2'
+        });
+    });
+}
     
     /**
      * 创建设置按钮
