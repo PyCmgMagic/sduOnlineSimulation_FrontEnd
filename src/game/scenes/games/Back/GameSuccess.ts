@@ -1,6 +1,6 @@
 import {Scene} from "phaser";
-import {CommonFunction} from "../../../utils/CommonFunction.ts";
-import {CustomerOrder} from "../Game.ts"; 
+import {CommonFunction} from "../../../../utils/CommonFunction.ts";
+import {CustomerOrder} from "../../Game.ts"; 
 
 export class GameSuccess extends Scene {
     

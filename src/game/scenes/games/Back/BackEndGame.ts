@@ -1,8 +1,9 @@
 import { Scene } from "phaser";
-import {CustomerOrder} from "../Game.ts";
+import {CustomerOrder} from "../../Game.ts";
 import Dungeon, {Room} from "@mikewesthad/dungeon";
 import Tileset = Phaser.Tilemaps.Tileset;
 import TilemapLayer = Phaser.Tilemaps.TilemapLayer;
+import { Direction, TILE_MAPPING } from "./Types.ts";
 
 export class BackEndGame extends Scene
 {
@@ -14,12 +15,16 @@ export class BackEndGame extends Scene
     
     // public variables
     private player: Player;
-    private enemies: Enemy[] = [];
+    enemies: Enemy[] = [];
     private groundLayer: TilemapLayer
     private stuffLayer: TilemapLayer
     private shadowLayer: TilemapLayer
     private tilemapVisibility: TilemapVisibility
     private dungeon: Dungeon;
+    private score: number = 0;
+    private scoreText: Phaser.GameObjects.Text;
+    private timeNumber: number = 0;
+    private timerText: Phaser.GameObjects.Text;
     
     constructor()
     {
@@ -69,6 +74,10 @@ export class BackEndGame extends Scene
             margin: 0,
             spacing: 0
         })
+        
+        //temp
+        
+        this.load.image("Book", "assets/ui/icons/book.png")
     }
 
     create()
@@ -81,6 +90,7 @@ export class BackEndGame extends Scene
         this.createTimer();
         this.createIntro();
         this.createOperation();
+        this.createScore();
         
         this.events.on("back-end-game-over", this.gameOver, this);
         this.events.once(Phaser.Scenes.Events.DESTROY, () => {
@@ -92,16 +102,17 @@ export class BackEndGame extends Scene
         })
     }
 
-    update(time, delta) {
-        
+    update(time: number, delta: number) {
         if(this.player.sprite.body) {
-            this.player.update();
+            this.player.update(time, delta);
 
             const playerTileX = this.groundLayer.worldToTileX(this.player.sprite.x);
             const playerTileY = this.groundLayer.worldToTileY(this.player.sprite.y);
             const playerRoom = this.dungeon.getRoomAt(playerTileX, playerTileY);
-
-            this.tilemapVisibility.setActiveRoom(playerRoom);   
+            if(playerRoom) {
+                this.tilemapVisibility.setActiveRoom(playerRoom);
+                this.tilemapVisibility.setActiveEnemies(playerRoom);
+            } 
         }
         
         this.enemies.forEach(enemy => {
@@ -164,7 +175,7 @@ export class BackEndGame extends Scene
         this.groundLayer = TypeNullCheck(map.createBlankLayer('ground', tileset), "Tilemap 图层创建失败").fill(TILE_MAPPING.BLANK);
         this.stuffLayer = TypeNullCheck(map.createBlankLayer('stuff', tileset), "Tilemap 图层创建失败");
         this.shadowLayer = TypeNullCheck(map.createBlankLayer('shadow', tileset), "Tilemap 图层创建失败").fill(TILE_MAPPING.BLANK);
-        this.tilemapVisibility = new TilemapVisibility(this.shadowLayer);
+        this.tilemapVisibility = new TilemapVisibility(this, this.shadowLayer);
         
         // 地图框架图层
         this.dungeon.rooms.forEach(room => {
@@ -239,10 +250,10 @@ export class BackEndGame extends Scene
         // stuffLayer.fill(TILE_MAPPING.BLANK);
         
         const rooms = this.dungeon.rooms.slice();
-        const startRoom = rooms.shift();
-        const endRoom = Phaser.Utils.Array.RemoveRandomElement(rooms);
+        // const startRoom = rooms.shift() as Room;
+        const endRoom = Phaser.Utils.Array.RemoveRandomElement(rooms) as Room;
         const otherRooms = Phaser.Utils.Array.Shuffle(rooms).slice(0, rooms.length * 0.9);
-        const enemyPosition: {x: number, y: number}[] = [];
+        const enemyPosition: {x: number, y: number, room: Room}[] = [];
         
         this.stuffLayer.putTileAt(TILE_MAPPING.STAIRS, endRoom.centerX, endRoom.centerY);
 
@@ -274,7 +285,7 @@ export class BackEndGame extends Scene
             const worldX: number = this.stuffLayer.tileToWorldX(randX);
             const worldY: number = this.stuffLayer.tileToWorldY(randY);
             if (true) {
-                enemyPosition.push({x: worldX, y: worldY});
+                enemyPosition.push({x: worldX, y: worldY, room: room});
             }
         });
 
@@ -300,7 +311,8 @@ export class BackEndGame extends Scene
         this.physics.add.collider(this.player.sprite, this.stuffLayer);
         
         enemyPosition.forEach((pos) => {
-            const enemy = new Enemy(this, pos.x, pos.y, this.DIFFICULTY, [this.groundLayer, this.stuffLayer]);
+            const enemy = new Enemy(this, pos.x, pos.y, this.DIFFICULTY, [this.groundLayer, this.stuffLayer], pos.room);
+            enemy.sprite.setVisible(false);
             this.enemies.push(enemy);
             this.physics.add.collider(enemy.sprite, this.groundLayer);
             this.physics.add.collider(enemy.sprite, this.stuffLayer);
@@ -367,27 +379,91 @@ export class BackEndGame extends Scene
     }
     
     createTimer() {
+        this.add.graphics().fillStyle(0xffffff, 1).fillRect(200, 0, 200, 50).setScrollFactor(0);
+        this.timerText = this.add.text(300, 0, "Time:\n 00:00", { fontSize: "24px", color:"#000"}).setScrollFactor(0);
         
+        this.time.addEvent({
+            delay: 1000,
+            callback: () => {this.updateTimer()},
+            callbackScope: this,
+            loop: true,
+        })
+    }
+    
+    updateTimer() {
+        this.timeNumber += 1
+        this.timerText.setText("Time: \n" + this.timeTranslate(this.timeNumber));
     }
     
     createIntro() {
-        
+        const book = this.add.image(500, 10, "book").setInteractive();
+        book.setScrollFactor(0);
+        book.setScale(0.5)
+        book.on("pointerdown", () => {
+            book.setScale(0.8);
+        })
+        book.on("pointerup", () => {
+            book.setScale(1)
+        })
+        book.on("pointerover", () => {
+            book.setScale(1.2)
+        })
+        book.on("pointerout", () => {
+            book.setScale(1)
+        })
     }
     
     createOperation() {
+    }
+    
+    createScore()
+    {
+        this.add.graphics().fillStyle(0xffffff, 1).fillRect(0, 0, 200, 50).setScrollFactor(0);
+        this.scoreText = this.add.text(10, 10, "Score: 0", { fontSize: "24px", color:"#000"}).setScrollFactor(0);
+    }
+
+    IncreaseScore()
+    {
+        this.score += 100;
+        this.scoreText.setText("Score: " + this.score);
+    }
+    
+    private timeTranslate(second: number): string
+    {
+        const minute: number = (second - (second % 60)) / 60
+        second = second % 60;
+        let result: string = "";
+        if (minute == 0) {
+            result += "00:";
+        } else if (minute <= 9) {
+            result += "0" + minute + ":";
+        } else {
+            result += minute + ":";
+        }
         
+        if (second <= 9) {
+            result += "0" + second;
+        } else {
+            result += second;
+        }
+        
+        return result;
     }
 }
 
 class Player {
-    private scene: Scene;
+    private scene: BackEndGame;
     readonly sprite: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     private readonly keys: Phaser.Types.Input.Keyboard.CursorKeys;
     // player properties
     private DIFFICULTY: number;
     private health: number = 1;
-    private damage: number = 10;
+    private damage: number = 50;
     private speed: number = 300;
+    private attackRange: number = 100;
+    private readonly ATTACKCOOLDOWNTIME: number = 3000;
+    private attackCoolDown: number = 3000;
+    
     
     // Keys
     private input: Phaser.Input.InputPlugin;
@@ -396,7 +472,7 @@ class Player {
     private Key_W: Phaser.Input.Keyboard.Key | undefined;
     private Key_S: Phaser.Input.Keyboard.Key | undefined;
     
-    constructor(scene: Scene, x: number, y: number, difficulty: number) {
+    constructor(scene: BackEndGame, x: number, y: number, difficulty: number) {
         this.scene = scene;
         this.DIFFICULTY = difficulty;
         const anims = this.scene.anims;
@@ -435,7 +511,7 @@ class Player {
         TypeNullCheck(this.sprite.body, "body is null").moves = false;
     }
 
-    update() {
+    update(time: number, delta: number) {
         const keys = this.keys;
         const sprite = this.sprite;
         const prevVelocity = sprite.body.velocity.clone();
@@ -444,36 +520,53 @@ class Player {
         sprite.body.setVelocity(0);
 
         // Horizontal movement
-        if (keys.left.isDown || this.Key_A?.isDown) {
+        if (this.Key_A?.isDown) {
             sprite.body.setVelocityX(-this.speed);
             sprite.setFlipX(true);
-        } else if (keys.right.isDown || this.Key_D?.isDown) {
+        } else if (this.Key_D?.isDown) {
             sprite.body.setVelocityX(this.speed);
             sprite.setFlipX(false);
         }
-
         // Vertical movement
-        if (keys.up.isDown || this.Key_W?.isDown) {
+        if (this.Key_W?.isDown) {
             sprite.body.setVelocityY(-this.speed);
-        } else if (keys.down.isDown || this.Key_S?.isDown) {
+        } else if (this.Key_S?.isDown) {
             sprite.body.setVelocityY(this.speed);
         }
-
-        // Normalize and scale the velocity so that sprite can't move faster along a diagonal
+        
         sprite.body.velocity.normalize().scale(this.speed);
-
-        // Update the animation last and give left/right/down animations precedence over up animations
         if (keys.left.isDown || keys.right.isDown || keys.down.isDown || this.Key_A?.isDown || this.Key_D?.isDown || this.Key_S?.isDown) {
             sprite.anims.play("player-walk", true);
         } else if (keys.up.isDown || this.Key_W?.isDown) {
             sprite.anims.play("player-walk-back", true);
         } else {
             sprite.anims.stop();
-
-            // If we were moving, and now we're not, then pick a single idle frame to use
             if (prevVelocity.y < 0) sprite.setTexture("game-back-end-player", 65);
             else sprite.setTexture("game-back-end-player", 46);
         }
+        
+        if (keys.up.isDown && this.attackCoolDown <= 0) 
+        {
+            this.attack(Direction.UP);
+            this.attackCoolDown = this.ATTACKCOOLDOWNTIME;
+        } else if (keys.down.isDown && this.attackCoolDown <= 0) 
+        {
+            this.attack(Direction.DOWN);
+            this.attackCoolDown = this.ATTACKCOOLDOWNTIME;
+        } else if (keys.right.isDown && this.attackCoolDown <= 0) 
+        {
+            this.attack(Direction.RIGHT);
+            this.attackCoolDown = this.ATTACKCOOLDOWNTIME;
+        } else if (keys.left.isDown && this.attackCoolDown <= 0)
+        {
+            this.attack(Direction.LEFT);
+            this.attackCoolDown = this.ATTACKCOOLDOWNTIME;
+        }
+        
+        if (this.attackCoolDown > 0) {
+            this.attackCoolDown -= delta;
+        }
+            
     }
 
     destroy() {
@@ -488,23 +581,64 @@ class Player {
         }
     }
     
+    attack(direction: Direction)
+    {
+        const enemyInRange = this.scene.enemies.filter(enmey => {
+            const dx = enmey.sprite.x - this.sprite.x;
+            const dy = enmey.sprite.y - this.sprite.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const isInRange = distance <= this.attackRange;
+            if (isInRange) {
+                switch (direction) {
+                    case Direction.UP:
+                        if (dy < 0) {
+                            return true;
+                        }
+                        break;
+                    case Direction.DOWN:
+                        if (dy > 0) {
+                            return true;
+                        }
+                        break;
+                    case Direction.LEFT:
+                        if (dx < 0) {
+                            return true;
+                        }
+                        break;
+                    case Direction.RIGHT:
+                        if (dx > 0) {
+                            return true;
+                        }
+                        break;
+                }
+            }
+            return false;
+        })
+        console.log( "attack to " + direction);
+        enemyInRange.forEach(enemy => {
+            enemy.healthDecrease(this.damage);
+        })
+    }
+    
 }
 
 class Enemy {
-    private scene: Scene;
+    private scene: BackEndGame;
     readonly sprite;
     private isMoving = false;
     private tileSize = 48;
     private readonly tileLayers: TilemapLayer[];
     private DIFFICULTY: number;
     public readonly speed: number = 100;
-    private health: number;
+    private health: number = 100;
     private sight_distance: number = 200;
+    private room: Room;
     
-    constructor(scene: Scene, x: number, y: number, difficulty: number, layers: TilemapLayer[]) {
+    constructor(scene: BackEndGame, x: number, y: number, difficulty: number, layers: TilemapLayer[], room: Room) {
         this.scene = scene;
         this.DIFFICULTY = difficulty;
         this.tileLayers = layers;
+        this.room = room;
         
         this.sprite = scene.physics.add
             .sprite(x, y, 'game-back-end-enemy-static', 0)
@@ -516,11 +650,18 @@ class Enemy {
     }
     
     destroy() {
+        const index = this.scene.enemies.indexOf(this);
+        if (index != -1){
+            this.scene.enemies.splice(index, 1);
+        }
+        this.sprite.body.destroy();
         this.sprite.destroy();
+        this.scene.IncreaseScore();
     }
     
     update(player: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody) {
         const enemy = this.sprite;
+        if (!enemy) return;
         if (!enemy.body) return;
         
         if(this.isMoving) return;
@@ -570,24 +711,50 @@ class Enemy {
             }
 
             this.scene.time.delayedCall(moveDuration, () => {
+                if (enemy && enemy.body)
                 enemy.body.setVelocity(0);
                 this.isMoving = false;
             });
             
         } else {
-            enemy.body.setVelocity(0);
-            enemy.anims.play("enemy-standby", true);
+            if (enemy && enemy.body) {
+                enemy.body.setVelocity(0);
+            }
+            if (enemy) {
+                enemy.anims.play("enemy-standby", true);
+            }
         }
+    }
+    
+    healthDecrease(damage: number) {
+        if (this.health <= 0) return;
+        this.health -= damage;
+        if (this.health <= 0) {
+            this.destroy();
+        }
+    }
+    
+    getRoom() {
+        return this.room;
     }
 }
 
 class TilemapVisibility {
+    private scene: BackEndGame;
     private shadowLayer: TilemapLayer;
     private activeRoom: Room | null;
     
-    constructor(shadowLayer: TilemapLayer) {
+    constructor(scene: BackEndGame, shadowLayer: TilemapLayer) {
         this.shadowLayer = shadowLayer;
         this.activeRoom = null;
+        this.scene = scene;
+        
+        // init the enemies with invisible
+        this.scene.enemies.forEach(
+            enemy => {
+                enemy.sprite.alpha = 0;
+            }
+        )
     }
 
     setActiveRoom(room: Room) {
@@ -599,8 +766,20 @@ class TilemapVisibility {
         }
     }
 
+    setActiveEnemies(room: Room) {
+        // console.log("setActiveEnemies", room);
+        this.scene.enemies.forEach(
+            enemy => {
+                // console.log("enemy.getRoom()", enemy.getRoom());
+                if (enemy.getRoom() == room) {
+                    enemy.sprite.setVisible(true);
+                }
+            }
+        )
+    }
+    
     // Helper to set the alpha on all tiles within a room
-    setRoomAlpha(room, alpha) {
+    setRoomAlpha(room: Room, alpha: number) {
         this.shadowLayer.forEachTile(
             t => (t.alpha = alpha),
             this,
@@ -619,41 +798,4 @@ function TypeNullCheck<T>(element: T | null, msg: string): T {
     return element;
 }
 
-const TILE_MAPPING = {
-    BLANK: 20,
-    WALL: {
-        TOP_LEFT: 3,
-        TOP_RIGHT: 4,
-        BOTTOM_RIGHT: 23,
-        BOTTOM_LEFT: 22,
-        TOP: [{ index: 39, weight: 4 }, { index: [57, 58, 59], weight: 1 }],
-        LEFT: [{ index: 21, weight: 4 }, { index: [76, 95, 114], weight: 1 }],
-        RIGHT: [{ index: 19, weight: 4 }, { index: [77, 96, 115], weight: 1 }],
-        BOTTOM: [{ index: 1, weight: 4 }, { index: [78, 79, 80], weight: 1 }]
-    },
-    FLOOR: [{ index: 6, weight: 9 }, { index: [7, 8, 26], weight: 1 }],
-    POT: [{ index: 13, weight: 1 }, { index: 32, weight: 1 }, { index: 51, weight: 1 }],
-    DOOR: {
-        TOP: [40, 6, 38],
-        // prettier-ignore
-        LEFT: [
-            [40],
-            [6],
-            [2]
-        ],
-        BOTTOM: [2, 6, 0],
-        // prettier-ignore
-        RIGHT: [
-            [38],
-            [6],
-            [0]
-        ]
-    },
-    CHEST: 166,
-    STAIRS: 81,
-    // prettier-ignore
-    TOWER: [
-        [186],
-        [205]
-    ]
-};
+
