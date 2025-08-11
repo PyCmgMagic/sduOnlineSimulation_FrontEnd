@@ -675,4 +675,36 @@ export class CommonFunction
         }
         return result;
     }
+
+    /**
+     * 根据均值与标准差生成符合正态分布的随机数
+     * @param mean -均值
+     * @param std_dev -标准差
+     * @return random -随机数
+     */
+    public static getNumberInNormalDistribution(mean: number,std_dev: number) {
+        return mean + ( this.uniform2NormalDistribution() * std_dev );
+    }
+
+    private static uniform2NormalDistribution() {
+        let sum = 0.0;
+        for( let i: number = 0; i < 12; i++){
+            sum = sum + Math.random();
+        }
+        return sum - 6.0;
+    }
+
+    /**
+     * 通过概率模拟事件是否发生
+     * @param probability -概率
+     * @return boolean
+     */
+    public static simulateEvent(probability: number) {
+    // 检查输入概率是否在0到1之间
+    if (probability < 0 || probability > 1) {
+        throw new Error('概率必须在0到1之间');
+    }
+    // 生成0到1之间的随机数，与输入概率比较
+    return Math.random() < probability;
+}
 }

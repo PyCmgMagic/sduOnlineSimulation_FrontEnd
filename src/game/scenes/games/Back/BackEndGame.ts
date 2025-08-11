@@ -4,6 +4,8 @@ import Dungeon, {Room} from "@mikewesthad/dungeon";
 import Tileset = Phaser.Tilemaps.Tileset;
 import TilemapLayer = Phaser.Tilemaps.TilemapLayer;
 import { Direction, TILE_MAPPING } from "./Types.ts";
+import {CommonFunction} from "../../../../utils/CommonFunction.ts";
+import {responseEncoding} from "axios";
 
 export class BackEndGame extends Scene
 {
@@ -51,6 +53,7 @@ export class BackEndGame extends Scene
         
         // 初始化部分变量
         this.timeNumber = 0;
+        this.score = 0;
     }
     
     preload() {
@@ -105,6 +108,7 @@ export class BackEndGame extends Scene
         this.createIntro();
         this.createOperation();
         this.createScore();
+        this.createInfo();
         
         this.events.on("back-end-game-over", this.gameOver, this);
         this.events.once(Phaser.Scenes.Events.DESTROY, () => {
@@ -339,7 +343,8 @@ export class BackEndGame extends Scene
     }
     
     handlePlayerEnemyCollider(player: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody, enemy: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody) {
-        this.player.healthDecrease();
+        const realEnemy: Enemy = enemy.getData("owner") as Enemy;
+        this.player.healthDecrease(realEnemy.getDamage());
     }
     
     createAnims(): void {
@@ -468,6 +473,25 @@ export class BackEndGame extends Scene
         this.add.graphics().fillStyle(0xffffff, 1).fillRect(0, 0, 200, 50).setScrollFactor(0);
         this.scoreText = this.add.text(10, 10, "Score: 0", { fontSize: "24px", color:"#000"}).setScrollFactor(0);
     }
+    
+    createInfo(): void {
+        const book = this.add.image(700, 30, "book").setInteractive();
+        book.setScrollFactor(0);
+        const scale = 0.3;
+        book.setScale(scale)
+        book.on("pointerdown", () => {
+            book.setScale(scale * 0.8);
+        })
+        book.on("pointerup", () => {
+            book.setScale(scale)
+        })
+        book.on("pointerover", () => {
+            book.setScale(scale * 1.2)
+        })
+        book.on("pointerout", () => {
+            book.setScale(scale)
+        })
+    }
 
     IncreaseScore()
     {
@@ -506,6 +530,10 @@ class Player {
     private DIFFICULTY: number;
     private MAXHEALTH: number = 50;
     private health: number = 50;
+    private criticalHitRate = 0.08;
+    private criticalHitMultiplier = 1.10;
+    private injuryFreeRate: number = 0.1;
+    private minDamage: number = 10;
     private damage: number = 50;
     private speed: number = 300;
     private attackRange: number = 100;
@@ -513,7 +541,6 @@ class Player {
     private attackCoolDown: number = 3000;
     private attackBar: AttackCoolDownBar;
     private healthBar: HealthBar;
-    private isHurt: boolean = false;
     private isInvincible: boolean = false;
     private invincibleDuration: number = 0;
     private flashTimer: number = 0;
@@ -529,8 +556,8 @@ class Player {
     constructor(scene: BackEndGame, x: number, y: number, difficulty: number) {
         this.scene = scene;
         this.DIFFICULTY = difficulty;
-        this.attackBar = new AttackCoolDownBar(this.scene, 0, 70, 200, 30, this.ATTACKCOOLDOWNTIME, this);
-        this.healthBar = new HealthBar(this.scene, this.scene.cameras.main.centerX - 25, this.scene.cameras.main.centerY - 15, 50, 5, this.MAXHEALTH, this);
+        this.attackBar = new AttackCoolDownBar(this.scene, 0, 700, 200, 30, this.ATTACKCOOLDOWNTIME, this);
+        this.healthBar = new HealthBar(this.scene, 0, 100, 200, 20, this.MAXHEALTH, this);
         const anims = this.scene.anims;
         if (!anims.exists("player-walk")){
             anims.create({
@@ -646,10 +673,16 @@ class Player {
         this.healthBar.destroy();
     }
     
-    healthDecrease() {
+    healthDecrease(damage: number) {
         if (this.isInvincible) return;
+        damage = Math.floor(damage * (1 - this.injuryFreeRate));
+
+        console.log("玩家将受到" + damage + "点伤害");
         
-        this.health -= 10;
+        this.health -= damage;
+        if (this.health <= 0) {
+            this.health = 0;
+        }
         this.healthBar.update(this.health);
         
         this.activateInvincibility(2000);
@@ -695,7 +728,7 @@ class Player {
         })
         console.log( "attack to " + direction);
         enemyInRange.forEach(enemy => {
-            enemy.healthDecrease(this.damage);
+            enemy.healthDecrease(this.getDamage());
         })
     }
 
@@ -704,6 +737,15 @@ class Player {
         this.invincibleDuration = duration;
         this.flashTimer = 0;
         this.sprite.alpha = 0.5; // 初始化为半透明
+    }
+    
+    getDamage(): number {
+        let realDamage = CommonFunction.getNumberInNormalDistribution(this.damage, 50);
+        if (CommonFunction.simulateEvent(this.criticalHitRate)) {
+           realDamage *= this.criticalHitMultiplier 
+        }
+        if (realDamage < this.minDamage) realDamage = this.minDamage;
+        return Math.floor(realDamage);
     }
     
 }
@@ -721,6 +763,11 @@ class Enemy {
     private readonly room: Room;
     private isDead: boolean = false;
     private isHurt: boolean = false;
+    private damage: number = 10;
+    private minDamage: number = 5;
+    private criticalHitRate = 0.08;
+    private criticalHitMultiplier = 1.10;
+    private injuryFreeRate: number = 0.1;
     
     constructor(scene: BackEndGame, x: number, y: number, difficulty: number, layers: TilemapLayer[], room: Room) {
         this.scene = scene;
@@ -733,6 +780,9 @@ class Enemy {
             .setSize(22, 23)
             .setOffset(23, 27)
             .setScale(1.5);
+        
+        // 给精灵对象添加一条数据，使其指向自己的Enemy类，从而方便在碰撞检测中获取一些数据
+        this.sprite.setData("owner", this);
         
         this.sprite.anims.play("enemy-standby");
     }
@@ -818,6 +868,10 @@ class Enemy {
     
     healthDecrease(damage: number) {
         if (this.health <= 0 || !this.sprite || !this.sprite.body) return;
+        
+        damage = Math.floor(damage * (1 - this.injuryFreeRate));
+        console.log("怪物将收到" + damage + "点伤害");
+        
         if(this.health - damage <= 0){
             this.isDead = true;
             if (this.sprite.body) {
@@ -837,6 +891,15 @@ class Enemy {
                 this.isHurt = false;
             })
         }
+    }
+    
+    getDamage(): number {
+        let realDamage = CommonFunction.getNumberInNormalDistribution(this.damage, 50);
+        if (CommonFunction.simulateEvent(this.criticalHitRate)) {
+            realDamage *= this.criticalHitMultiplier;
+        }
+        if (realDamage < this.minDamage) realDamage = this.minDamage;
+        return Math.floor(realDamage);
     }
     
     getRoom() {
@@ -918,7 +981,7 @@ class HealthBar {
         // 设置背景
         const graphicsBg = this.scene.add.graphics().setScrollFactor(0);
         graphicsBg.setDepth(9);
-        graphicsBg.fillStyle(0xffffff, 0);
+        graphicsBg.fillStyle(0x868388, 0.5);
         graphicsBg.fillRect(this.x, this.y, this.width, this.height);
         
         this.update(this.MAXHEALTH)
