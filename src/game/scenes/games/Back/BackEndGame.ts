@@ -48,6 +48,9 @@ export class BackEndGame extends Scene
         console.log('BackEndGame received order:', this.currentOrder);
         
         // TODO 接受难度参数
+        
+        // 初始化部分变量
+        this.timeNumber = 0;
     }
     
     preload() {
@@ -74,6 +77,18 @@ export class BackEndGame extends Scene
             margin: 0,
             spacing: 0
         })
+        this.load.spritesheet("game-back-end-enemy-hurt", "assets/games/back-end/slime-hurt.png", {
+            frameWidth: 64,
+            frameHeight: 64,
+            margin: 0,
+            spacing: 0
+        })
+        this.load.spritesheet("game-back-end-enemy-death", "assets/games/back-end/slime-death.png", {
+            frameWidth: 64,
+            frameHeight: 64,
+            margin: 0,
+            spacing: 0
+        })
         
         //temp
         
@@ -85,7 +100,6 @@ export class BackEndGame extends Scene
         // Simple background for now
         this.cameras.main.setBackgroundColor('#333333');
         
-        // something new
         this.initGame();
         this.createTimer();
         this.createIntro();
@@ -250,7 +264,7 @@ export class BackEndGame extends Scene
         // stuffLayer.fill(TILE_MAPPING.BLANK);
         
         const rooms = this.dungeon.rooms.slice();
-        // const startRoom = rooms.shift() as Room;
+        const startRoom = rooms.shift() as Room;
         const endRoom = Phaser.Utils.Array.RemoveRandomElement(rooms) as Room;
         const otherRooms = Phaser.Utils.Array.Shuffle(rooms).slice(0, rooms.length * 0.9);
         const enemyPosition: {x: number, y: number, room: Room}[] = [];
@@ -305,7 +319,7 @@ export class BackEndGame extends Scene
 
         this.stuffLayer.setCollisionByExclusion([-1, 6, 7, 8, 26]);
 
-        // init player
+        // 初始化玩家
         this.player = new Player(this, map.widthInPixels / 2, map.heightInPixels / 2, this.DIFFICULTY);
         this.physics.add.collider(this.player.sprite, this.groundLayer);
         this.physics.add.collider(this.player.sprite, this.stuffLayer);
@@ -376,6 +390,22 @@ export class BackEndGame extends Scene
                 duration: moveDuration
             })
         }
+        if (!anims.exists("enemy-hurt")){
+            anims.create({
+                key: "enemy-hurt",
+                frames: anims.generateFrameNumbers("game-back-end-enemy-hurt", { start: 0, end: 4 }),
+                repeat: 0,
+                duration: 800,
+            })
+        }
+        if (!anims.exists("enemy-death")){
+            anims.create({
+                key: "enemy-death",
+                frames: anims.generateFrameNumbers("game-back-end-enemy-death", { start: 0, end: 9 }),
+                frameRate: 5,
+                repeat: 0,
+            })
+        }
     }
     
     createTimer() {
@@ -396,24 +426,41 @@ export class BackEndGame extends Scene
     }
     
     createIntro() {
-        const book = this.add.image(500, 10, "book").setInteractive();
+        const book = this.add.image(500, 30, "book").setInteractive();
+        const scale = 0.3;
         book.setScrollFactor(0);
-        book.setScale(0.5)
+        book.setScale(scale)
         book.on("pointerdown", () => {
-            book.setScale(0.8);
+            book.setScale(scale * 0.8);
         })
         book.on("pointerup", () => {
-            book.setScale(1)
+            book.setScale(scale)
         })
         book.on("pointerover", () => {
-            book.setScale(1.2)
+            book.setScale(scale * 1.2)
         })
         book.on("pointerout", () => {
-            book.setScale(1)
+            book.setScale(scale)
         })
     }
     
     createOperation() {
+        const book = this.add.image(600, 30, "book").setInteractive();
+        book.setScrollFactor(0);
+        const scale = 0.3;
+        book.setScale(scale)
+        book.on("pointerdown", () => {
+            book.setScale(scale * 0.8);
+        })
+        book.on("pointerup", () => {
+            book.setScale(scale)
+        })
+        book.on("pointerover", () => {
+            book.setScale(scale * 1.2)
+        })
+        book.on("pointerout", () => {
+            book.setScale(scale)
+        })
     }
     
     createScore()
@@ -452,18 +499,25 @@ export class BackEndGame extends Scene
 }
 
 class Player {
-    private scene: BackEndGame;
+    private readonly scene: BackEndGame;
     readonly sprite: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     private readonly keys: Phaser.Types.Input.Keyboard.CursorKeys;
     // player properties
     private DIFFICULTY: number;
-    private health: number = 1;
+    private MAXHEALTH: number = 50;
+    private health: number = 50;
     private damage: number = 50;
     private speed: number = 300;
     private attackRange: number = 100;
     private readonly ATTACKCOOLDOWNTIME: number = 3000;
     private attackCoolDown: number = 3000;
-    
+    private attackBar: AttackCoolDownBar;
+    private healthBar: HealthBar;
+    private isHurt: boolean = false;
+    private isInvincible: boolean = false;
+    private invincibleDuration: number = 0;
+    private flashTimer: number = 0;
+    private readonly FLASH_INTERVAL: number = 100;
     
     // Keys
     private input: Phaser.Input.InputPlugin;
@@ -475,6 +529,8 @@ class Player {
     constructor(scene: BackEndGame, x: number, y: number, difficulty: number) {
         this.scene = scene;
         this.DIFFICULTY = difficulty;
+        this.attackBar = new AttackCoolDownBar(this.scene, 0, 70, 200, 30, this.ATTACKCOOLDOWNTIME, this);
+        this.healthBar = new HealthBar(this.scene, this.scene.cameras.main.centerX - 25, this.scene.cameras.main.centerY - 15, 50, 5, this.MAXHEALTH, this);
         const anims = this.scene.anims;
         if (!anims.exists("player-walk")){
             anims.create({
@@ -566,15 +622,38 @@ class Player {
         if (this.attackCoolDown > 0) {
             this.attackCoolDown -= delta;
         }
+        
+        this.attackBar.update(this.attackCoolDown);
+        
+        if (this.isInvincible) {
+            this.invincibleDuration -= delta;
+            this.flashTimer += delta;
+            
+            if (this.invincibleDuration <= 0) {
+                this.isInvincible = false;
+                this.sprite.alpha = 1;
+            } else if (this.flashTimer >= this.FLASH_INTERVAL) {
+                this.sprite.alpha = this.sprite.alpha === 1 ? 0.5 : 1;
+                this.flashTimer = 0;
+            }
+        } 
             
     }
 
     destroy() {
         this.sprite.destroy();
+        this.attackBar.destroy();
+        this.healthBar.destroy();
     }
     
     healthDecrease() {
-        this.health--;
+        if (this.isInvincible) return;
+        
+        this.health -= 10;
+        this.healthBar.update(this.health);
+        
+        this.activateInvincibility(2000);
+        
         if (this.health <= 0) {
             this.destroy();
             this.scene.events.emit("back-end-game-over");
@@ -619,6 +698,13 @@ class Player {
             enemy.healthDecrease(this.damage);
         })
     }
+
+    activateInvincibility(duration: number): void {
+        this.isInvincible = true;
+        this.invincibleDuration = duration;
+        this.flashTimer = 0;
+        this.sprite.alpha = 0.5; // 初始化为半透明
+    }
     
 }
 
@@ -632,7 +718,9 @@ class Enemy {
     public readonly speed: number = 100;
     private health: number = 100;
     private sight_distance: number = 200;
-    private room: Room;
+    private readonly room: Room;
+    private isDead: boolean = false;
+    private isHurt: boolean = false;
     
     constructor(scene: BackEndGame, x: number, y: number, difficulty: number, layers: TilemapLayer[], room: Room) {
         this.scene = scene;
@@ -663,6 +751,8 @@ class Enemy {
         const enemy = this.sprite;
         if (!enemy) return;
         if (!enemy.body) return;
+        if (this.isDead) return;
+        if (this.isHurt) return;
         
         if(this.isMoving) return;
         
@@ -727,15 +817,129 @@ class Enemy {
     }
     
     healthDecrease(damage: number) {
-        if (this.health <= 0) return;
-        this.health -= damage;
-        if (this.health <= 0) {
-            this.destroy();
+        if (this.health <= 0 || !this.sprite || !this.sprite.body) return;
+        if(this.health - damage <= 0){
+            this.isDead = true;
+            if (this.sprite.body) {
+                this.sprite.body.setVelocity(0, 0);
+                this.sprite.body.enable = false;
+                this.sprite.body.checkCollision.none = true;
+            }
+            this.sprite.anims.play("enemy-death");
+            this.sprite.on("animationcomplete", () => {
+                this.destroy();
+            })
+        } else {
+            this.health -= damage;
+            this.isHurt = true;
+            this.sprite.anims.play("enemy-hurt");
+            this.sprite.on("animationcomplete", () => {
+                this.isHurt = false;
+            })
         }
     }
     
     getRoom() {
         return this.room;
+    }
+}
+
+class AttackCoolDownBar {
+    private readonly scene: BackEndGame;
+    private readonly owner: Player;
+    private graphics: Phaser.GameObjects.Graphics;
+    private readonly maxCoolDown: number;
+    private readonly x: number;
+    private readonly y: number;
+    private readonly width: number;
+    private readonly height: number;
+    
+    constructor(scene: BackEndGame, x: number, y: number, width: number, height: number = 30, maxCoolDown: number, owner: Player) {
+        this.scene = scene;
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.maxCoolDown = maxCoolDown;
+        this.owner = owner;
+        
+        this.graphics = this.scene.add.graphics().setScrollFactor(0);
+        this.graphics.setDepth(10);
+        
+        // 设置背景
+        const graphicsBg = this.scene.add.graphics().setScrollFactor(0);
+        graphicsBg.setDepth(9);
+        graphicsBg.fillStyle(0xffffff, 0.5);
+        graphicsBg.fillRect(this.x, this.y, this.width, this.height);
+    }
+    
+    update(coolDown: number){
+        this.draw(coolDown);
+    }
+    
+    private draw(coolDown: number) {
+        this.graphics.clear();
+        
+        const progress = (this.maxCoolDown - coolDown) / this.maxCoolDown; // 冷却百分比
+        const barWidth = this.width * progress;
+        
+        this.graphics.fillStyle(coolDown <= 0 ? 0xB72121 : 0x11ce49, 0.8);
+        this.graphics.fillRect(this.x, this.y, barWidth, this.height);
+    }
+    
+    destroy() {
+        this.graphics.destroy();
+    }
+}
+
+class HealthBar {
+    private readonly scene: BackEndGame;
+    private readonly owner: Player;
+    private graphics: Phaser.GameObjects.Graphics;
+    private readonly MAXHEALTH: number;
+    private readonly x: number;
+    private readonly y: number;
+    private readonly width: number;
+    private readonly height: number;
+
+    constructor(scene: BackEndGame, x: number, y: number, width: number, height: number = 5, maxHealth: number, owner: Player) {
+        this.scene = scene;
+        this.x = x;
+        this.y = y;
+        this.height = height;
+        this.width = width;
+        this.owner = owner;
+        this.MAXHEALTH = maxHealth;
+        
+
+        this.graphics = this.scene.add.graphics().setScrollFactor(0);
+        this.graphics.setDepth(10);
+
+        // 设置背景
+        const graphicsBg = this.scene.add.graphics().setScrollFactor(0);
+        graphicsBg.setDepth(9);
+        graphicsBg.fillStyle(0xffffff, 0);
+        graphicsBg.fillRect(this.x, this.y, this.width, this.height);
+        
+        this.update(this.MAXHEALTH)
+    }
+
+    update(currentHealth: number){
+        this.draw(currentHealth);
+    }
+
+    private draw(currentHealth: number) {
+        this.graphics.clear();
+
+        const progress = currentHealth / this.MAXHEALTH; // 冷却百分比
+        const barWidth = this.width * progress;
+
+        this.graphics.fillStyle(0xB72121, 0.8);
+        this.graphics.fillRect(this.x, this.y, barWidth, this.height);
+    }
+
+    destroy() {
+        this.graphics.destroy();
     }
 }
 
