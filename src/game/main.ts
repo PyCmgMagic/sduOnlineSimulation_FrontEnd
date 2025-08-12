@@ -12,6 +12,7 @@ import { VisionGame } from "./scenes/games/VisionGame.ts";
 import { FrontEndGame } from "./scenes/games/FrontEndGame.ts";
 import { BackEndGame } from "./scenes/games/Back/BackEndGame.ts";
 import {GameSuccess} from "./scenes/games/Back/GameSuccess.ts";
+import { BackEndGamePop } from "./scenes/games/Back/BackEndGamePop.ts";
 
 //  Find out more information about the Game Config at:
 //  https://docs.phaser.io/api-documentation/typedef/types-core#gameconfig
@@ -39,6 +40,7 @@ const config: Phaser.Types.Core.GameConfig = {
         FrontEndGame,
         BackEndGame,
         GameSuccess,
+        BackEndGamePop,
     ],
     physics: {
         default: "arcade",

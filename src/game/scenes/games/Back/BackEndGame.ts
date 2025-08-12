@@ -105,9 +105,7 @@ export class BackEndGame extends Scene
         this.initGame();
         this.createTimer();
         this.createIntro();
-        this.createOperation();
         this.createScore();
-        this.createInfo();
         
         this.events.on("back-end-game-over", this.gameOver, this);
         this.events.once(Phaser.Scenes.Events.DESTROY, () => {
@@ -439,6 +437,9 @@ export class BackEndGame extends Scene
         })
         book.on("pointerup", () => {
             book.setScale(scale)
+            this.scene.pause();
+            console.log("start a pop")
+            this.scene.launch("BackEndGamePop");
         })
         book.on("pointerover", () => {
             book.setScale(scale * 1.2)
