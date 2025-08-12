@@ -1,5 +1,5 @@
 import {CommonFunction} from "../../../../utils/CommonFunction.ts";
-import { Info, infoForIntro, infoForOperation} from "./Types.ts";
+import { Info, infoForIntro, infoForOperation, BackGameProperty} from "./Types.ts";
 
 export class BackEndGamePop extends Phaser.Scene
 {
@@ -7,6 +7,11 @@ export class BackEndGamePop extends Phaser.Scene
     private buttonForClose: Phaser.GameObjects.Container;
     private title: Phaser.GameObjects.Text;
     private content: Phaser.GameObjects.Text;
+    private backGameProperty: BackGameProperty;
+    private roomNumberText: Phaser.GameObjects.Text;
+    private content1: Phaser.GameObjects.Text;
+    private content2: Phaser.GameObjects.Text;
+    private roomNumber: number;
     
     constructor() {
         super('BackEndGamePop');
@@ -19,9 +24,10 @@ export class BackEndGamePop extends Phaser.Scene
         // this.load.image("back-end-game-pop-3", "assets/games/back-end/pop-3.png");
     }
     
-    init()
+    init(data: {backGameProperty: BackGameProperty, roomNumber: number})
     {
-        
+        this.backGameProperty = data.backGameProperty;
+        this.roomNumber = data.roomNumber;
     }
     
     create()
@@ -102,7 +108,7 @@ export class BackEndGamePop extends Phaser.Scene
             pop3_main.setDepth(3);
             pop1_main.setDepth(2);
             pop2_main.setDepth(1);
-            this.renderInfo({title: '', content: ''});
+            this.renderProperty();
         })
         
     }
@@ -115,8 +121,7 @@ export class BackEndGamePop extends Phaser.Scene
     
     renderInfo(info: Info)
     {
-        if (this.title) this.title.destroy();
-        if (this.content) this.content.destroy()
+        this.destroyElement();
         
         this.title = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY - 200, info.title, {
             fontSize: '32px',
@@ -133,6 +138,61 @@ export class BackEndGamePop extends Phaser.Scene
         this.title.setDepth(4);
         this.content.setDepth(4);
         
+    }
+    
+    renderProperty(): void
+    {
+        this.destroyElement();
+        
+        this.title = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY - 200, "相关属性", {
+            fontSize: '32px',
+            color: '#000000',
+            fontFamily: 'Arial',
+        }).setOrigin(0.5).setDepth(4);
+        this.roomNumberText = this.add.text(this.cameras.main.centerX, this.cameras.main.centerY - 150, `功能数: ${this.roomNumber}`, {
+            fontSize: '24px',
+            color: '#000000',
+            fontFamily: 'Arial',
+        }).setOrigin(0.5).setDepth(4);
+        this.content1 = this.add.text(this.cameras.main.centerX - 205, this.cameras.main.centerY - 130, `
+        玩家生命值: ${this.backGameProperty.playerProperty.health}\n
+        玩家暴击率: ${this.backGameProperty.playerProperty.criticalHitRate}\n
+        玩家暴击倍率: ${this.backGameProperty.playerProperty.criticalHitMultiplier}\n
+        玩家免伤: ${this.backGameProperty.playerProperty.injuryFreeRate}\n
+        玩家最小伤害: ${this.backGameProperty.playerProperty.minDamage}\n
+        玩家基础伤害: ${this.backGameProperty.playerProperty.damage}\n
+        玩家速度: ${this.backGameProperty.playerProperty.speed}\n
+        玩家攻击间隔: ${this.backGameProperty.playerProperty.attackCoolDown}
+        `, {
+            fontSize: '24px',
+            color: '#000000',
+            fontFamily: 'Arial',
+        }).setOrigin(0.5, 0)
+        this.content2 = this.add.text(this.cameras.main.centerX + 205, this.cameras.main.centerY - 130, `
+        怪物生命值: ${this.backGameProperty.enemyProperty.health}\n
+        怪物暴击率: ${this.backGameProperty.enemyProperty.criticalHitRate}\n
+        怪物暴击倍率: ${this.backGameProperty.enemyProperty.criticalHitMultiplier}\n
+        怪物免伤: ${this.backGameProperty.enemyProperty.injuryFreeRate}\n
+        怪物最小伤害: ${this.backGameProperty.enemyProperty.minDamage}\n
+        怪物基础伤害: ${this.backGameProperty.enemyProperty.damage}\n
+        怪物速度: ${this.backGameProperty.enemyProperty.speed}
+        `, {
+            fontSize: '24px',
+            color: '#000000',
+            fontFamily: 'Arial',
+        }).setOrigin(0.5, 0);
+        
+        this.content1.setDepth(4);
+        this.content2.setDepth(4);
+    }
+    
+    destroyElement()
+    {
+        if (this.content) this.content.destroy();
+        if (this.title) this.title.destroy();
+        if (this.content1) this.content1.destroy();
+        if (this.content2) this.content2.destroy();
+        if (this.roomNumberText) this.roomNumberText.destroy();
     }
     
 }

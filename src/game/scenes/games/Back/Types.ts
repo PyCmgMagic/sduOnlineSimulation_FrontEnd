@@ -44,13 +44,12 @@ export const TILE_MAPPING = {
     ]
 };
 
-interface BackGameProperty {
+export interface BackGameProperty {
     playerProperty: PlayerProperty,
     enemyProperty: EnemyProperty,
-    RoomNumber: number;
 }
 
-interface PlayerProperty {
+export interface PlayerProperty {
     health: number,
     criticalHitRate: number,
     criticalHitMultiplier: number,
@@ -61,7 +60,7 @@ interface PlayerProperty {
     attackCoolDown: number,
 }
 
-interface EnemyProperty {
+export interface EnemyProperty {
     speed: number,
     health: number,
     sight_distance: number,
@@ -86,4 +85,38 @@ export const infoForOperation: Info = {
     title: '操作说明',
     content: '使用WASD控制玩家移动，使用方向键向指定方向发起攻击。\n可是，尽管是强大的后端开发人员，他处理Bug的能力有限，需要等到左下方进度条满时才能进行攻击哦！\n按下E建可以快速打开相关信息面板！'
 }
+
+export interface GameResult {
+    score: number,
+    bugFixed: number,
+    totalBug: number,
+    functionCompleted: number,
+    totalFunction: number,
+    time: number;
+}
+
+export const properties: BackGameProperty[] = [
+    {
+        playerProperty: {
+            health: 50,
+            criticalHitRate: 0.08,
+            criticalHitMultiplier: 1.10,
+            injuryFreeRate: 0.1,
+            minDamage: 10,
+            damage: 50,
+            speed: 300,
+            attackCoolDown: 3000,
+        },
+        enemyProperty: {
+            speed: 100,
+            health: 100,
+            sight_distance: 200,
+            damage: 10,
+            minDamage: 5,
+            criticalHitRate: 0.08,
+            criticalHitMultiplier: 1.10,
+            injuryFreeRate: 0.1
+        },
+    }
+] 
 

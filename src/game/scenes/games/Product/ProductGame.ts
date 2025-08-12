@@ -1,8 +1,8 @@
 import { GameObjects, Scene, Physics, Time } from "phaser";
-import {CommonFunction} from "../../../utils/CommonFunction.ts";
+import {CommonFunction} from "../../../../utils/CommonFunction.ts";
 import SpriteWithDynamicBody = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 import CursorKeys = Phaser.Types.Input.Keyboard.CursorKeys;
-import { CustomerOrder } from "../Game.ts";
+import { CustomerOrder } from "../../Game.ts";
 
 interface ProductOrder {
     DIFFICULTY: number;
@@ -643,7 +643,7 @@ export class ProductGame extends Scene
 
             if (newLevelNumber === this.TARGET_LEVEL) {
                 this.scene.pause();
-                this.scene.start('GameSuccess', {currentOrder: this.currentOrder});
+                this.scene.start('GameSuccessForProduct', {currentOrder: this.currentOrder});
                 // CommonFunction.createConfirmPopup(this, 512, 368,1024, 500, '您的产品设计已完成！', '成功啊', () => {
                 //     console.log('产品开发完成，返回开发中心!');
                 //

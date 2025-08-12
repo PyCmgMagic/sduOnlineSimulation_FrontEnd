@@ -5,14 +5,15 @@ import { MainMenu } from './scenes/MainMenu';
 import { AUTO, Game } from 'phaser';
 import { Preloader } from './scenes/Preloader';
 import { MobileError } from "./scenes/mobiles/MobileError.ts";
-import { ProductGame } from "./scenes/games/ProductGame.ts";
+import { ProductGame } from "./scenes/games/Product/ProductGame.ts";
 import { GameEntrance } from "./scenes/GameEntrance.ts";
 import { PauseMenu } from "./scenes/PauseMenu.ts";
 import { VisionGame } from "./scenes/games/VisionGame.ts";
 import { FrontEndGame } from "./scenes/games/FrontEndGame.ts";
 import { BackEndGame } from "./scenes/games/Back/BackEndGame.ts";
-import {GameSuccess} from "./scenes/games/Back/GameSuccess.ts";
+import {GameSuccessForProduct} from "./scenes/games/Product/GameSuccessForProduct.ts";
 import { BackEndGamePop } from "./scenes/games/Back/BackEndGamePop.ts";
+import {GameSuccessForBack} from "./scenes/games/Back/GameSuccessForBack.ts";
 
 //  Find out more information about the Game Config at:
 //  https://docs.phaser.io/api-documentation/typedef/types-core#gameconfig
@@ -39,8 +40,9 @@ const config: Phaser.Types.Core.GameConfig = {
         VisionGame,
         FrontEndGame,
         BackEndGame,
-        GameSuccess,
+        GameSuccessForProduct,
         BackEndGamePop,
+        GameSuccessForBack,
     ],
     physics: {
         default: "arcade",

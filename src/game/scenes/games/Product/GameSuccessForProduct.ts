@@ -2,12 +2,12 @@ import {Scene} from "phaser";
 import {CommonFunction} from "../../../../utils/CommonFunction.ts";
 import {CustomerOrder} from "../../Game.ts"; 
 
-export class GameSuccess extends Scene {
+export class GameSuccessForProduct extends Scene {
     
     private currentOrder: CustomerOrder;
     
     constructor() {
-        super('GameSuccess');
+        super('GameSuccessForProduct');
     }
     
     init(data: {currentOrder: CustomerOrder})

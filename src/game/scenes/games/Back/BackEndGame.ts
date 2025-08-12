@@ -3,16 +3,17 @@ import {CustomerOrder} from "../../Game.ts";
 import Dungeon, {Room} from "@mikewesthad/dungeon";
 import Tileset = Phaser.Tilemaps.Tileset;
 import TilemapLayer = Phaser.Tilemaps.TilemapLayer;
-import { Direction, TILE_MAPPING } from "./Types.ts";
+import {BackGameProperty, Direction, EnemyProperty, PlayerProperty, TILE_MAPPING} from "./Types.ts";
 import {CommonFunction} from "../../../../utils/CommonFunction.ts";
+import {properties} from "./Types.ts";
 
 export class BackEndGame extends Scene
 {
     private currentOrder: CustomerOrder;
     
     // 游戏相关变量
-    private DIFFICULTY: number = 4; // 游戏难度
-    private MAX_ROOM_NUMBER: number;
+    private DIFFICULTY: number = 0; // 游戏难度
+    private property: BackGameProperty;
     
     // public variables
     private player: Player;
@@ -26,6 +27,11 @@ export class BackEndGame extends Scene
     private scoreText: Phaser.GameObjects.Text;
     private timeNumber: number = 0;
     private timerText: Phaser.GameObjects.Text;
+    
+    private exploredRoomNumber: number = 0;
+    private killedEnemyNumber: number = 0;
+    private enemyNumber: number;
+    private roomNumber: number;
     
     constructor()
     {
@@ -50,9 +56,13 @@ export class BackEndGame extends Scene
         
         // TODO 接受难度参数
         
+        this.property = properties[this.DIFFICULTY];
+        
         // 初始化部分变量
         this.timeNumber = 0;
         this.score = 0;
+        this.exploredRoomNumber = 0;
+        this.killedEnemyNumber = 0;
     }
     
     preload() {
@@ -156,8 +166,6 @@ export class BackEndGame extends Scene
     }
     
     initGame() {
-        const MaxRoomNumberArr: number[] = [1, 3, 5, 7, 9];
-        const MaxRoomNumber: number = MaxRoomNumberArr[this.DIFFICULTY];
         this.createAnims();
 
         this.dungeon = new Dungeon({
@@ -174,10 +182,12 @@ export class BackEndGame extends Scene
                     max: 15,
                     onlyOdd: true,
                 },
-                maxRooms: MaxRoomNumber,
+                maxRooms: 20,
             },
             doorPadding: 2,
         })
+        
+        this.roomNumber = this.dungeon.rooms.length;
 
         const map = this.make.tilemap({
             tileWidth: 48,
@@ -303,30 +313,32 @@ export class BackEndGame extends Scene
                 enemyPosition.push({x: worldX, y: worldY, room: room});
             }
         });
+        
+        this.enemyNumber = enemyPosition.length;
 
         this.stuffLayer.setTileIndexCallback(TILE_MAPPING.STAIRS, () => {
-            console.log("Player reached the stairs!");
             this.stuffLayer.setTileIndexCallback(TILE_MAPPING.STAIRS, () => {}, this);
             this.player.freeze();
-            {
-                const task = this.currentOrder.items.find(item => item.item.id === 'backend_dev');
-                if (task) {
-                    task.status = 'completed';
-                    console.log(`任务 ${task.item.name} 已标记为完成`);
-                }
-                this.scene.start('GameEntrance', { order: this.currentOrder });
-            }
+            this.scene.pause();
+            this.scene.launch('GameSuccessForBack', {currentOrder: this.currentOrder, result: {
+                score: this.score,
+                time: this.timeNumber,
+                functionCompleted: this.exploredRoomNumber,
+                totalFunction: this.roomNumber,
+                bugFixed: this.killedEnemyNumber,
+                totalBug: this.enemyNumber,
+                } });
         }, this);
 
         this.stuffLayer.setCollisionByExclusion([-1, 6, 7, 8, 26]);
 
         // 初始化玩家
-        this.player = new Player(this, map.widthInPixels / 2, map.heightInPixels / 2, this.DIFFICULTY);
+        this.player = new Player(this, map.widthInPixels / 2, map.heightInPixels / 2, this.property.playerProperty);
         this.physics.add.collider(this.player.sprite, this.groundLayer);
         this.physics.add.collider(this.player.sprite, this.stuffLayer);
         
         enemyPosition.forEach((pos) => {
-            const enemy = new Enemy(this, pos.x, pos.y, this.DIFFICULTY, [this.groundLayer, this.stuffLayer], pos.room);
+            const enemy = new Enemy(this, pos.x, pos.y, this.property.enemyProperty, [this.groundLayer, this.stuffLayer], pos.room);
             enemy.sprite.setVisible(false);
             this.enemies.push(enemy);
             this.physics.add.collider(enemy.sprite, this.groundLayer);
@@ -439,7 +451,7 @@ export class BackEndGame extends Scene
             book.setScale(scale)
             this.scene.pause();
             console.log("start a pop")
-            this.scene.launch("BackEndGamePop");
+            this.scene.launch("BackEndGamePop", {backGameProperty: this.property, roomNumber: this.roomNumber});
         })
         book.on("pointerover", () => {
             book.setScale(scale * 1.2)
@@ -520,6 +532,16 @@ export class BackEndGame extends Scene
         
         return result;
     }
+    
+    increaseKilledEnemyNumber()
+    {
+        this.killedEnemyNumber += 1;
+    }
+    
+    increaseExploredRoomNumber()
+    {
+        this.exploredRoomNumber += 1;
+    }
 }
 
 class Player {
@@ -553,9 +575,19 @@ class Player {
     private Key_W: Phaser.Input.Keyboard.Key | undefined;
     private Key_S: Phaser.Input.Keyboard.Key | undefined;
     
-    constructor(scene: BackEndGame, x: number, y: number, difficulty: number) {
+    constructor(scene: BackEndGame, x: number, y: number, property: PlayerProperty) {
         this.scene = scene;
-        this.DIFFICULTY = difficulty;
+        
+        // property
+        this.speed = property.speed;
+        this.health = property.health;
+        this.criticalHitRate = property.criticalHitRate;
+        this.criticalHitMultiplier = property.criticalHitMultiplier;
+        this.injuryFreeRate = property.injuryFreeRate;
+        this.damage = property.damage;
+        this.minDamage = property.minDamage;
+        this.attackCoolDown = property.attackCoolDown;
+        
         this.attackBar = new AttackCoolDownBar(this.scene, 0, 700, 200, 30, this.ATTACKCOOLDOWNTIME, this);
         this.healthBar = new HealthBar(this.scene, 0, 100, 200, 20, this.MAXHEALTH, this);
         const anims = this.scene.anims;
@@ -759,19 +791,29 @@ class Enemy {
     private DIFFICULTY: number;
     public readonly speed: number = 100;
     private health: number = 100;
-    private sight_distance: number = 200;
+    private readonly sight_distance: number = 200;
     private readonly room: Room;
     private isDead: boolean = false;
     private isHurt: boolean = false;
-    private damage: number = 10;
-    private minDamage: number = 5;
-    private criticalHitRate = 0.08;
-    private criticalHitMultiplier = 1.10;
-    private injuryFreeRate: number = 0.1;
+    private readonly damage: number = 10;
+    private readonly minDamage: number = 5;
+    private readonly criticalHitRate: number = 0.08;
+    private readonly criticalHitMultiplier: number = 1.10;
+    private readonly injuryFreeRate: number = 0.1;
     
-    constructor(scene: BackEndGame, x: number, y: number, difficulty: number, layers: TilemapLayer[], room: Room) {
+    constructor(scene: BackEndGame, x: number, y: number, property: EnemyProperty, layers: TilemapLayer[], room: Room) {
         this.scene = scene;
-        this.DIFFICULTY = difficulty;
+        
+        //property
+        this.speed = property.speed;
+        this.health = property.health;
+        this.sight_distance = property.sight_distance;
+        this.damage = property.damage;
+        this.minDamage = property.minDamage;
+        this.criticalHitRate = property.criticalHitRate;
+        this.criticalHitMultiplier = property.criticalHitMultiplier;
+        this.injuryFreeRate = property.injuryFreeRate;
+        
         this.tileLayers = layers;
         this.room = room;
         
@@ -899,7 +941,7 @@ class Enemy {
                 this.scene.tweens.add({
                     targets: damageText,
                     y: this.sprite.y, 
-                    alpha: 0.5, 
+                    alpha: 0.8, 
                     scaleX: 1,
                     scaleY: 1,
                     ease: "Bounce.easeOut", 
@@ -922,6 +964,7 @@ class Enemy {
             this.sprite.anims.play("enemy-death");
             this.sprite.on("animationcomplete", () => {
                 this.destroy();
+                this.scene.increaseKilledEnemyNumber();
             })
         } else {
             this.health -= damage;
@@ -1061,6 +1104,8 @@ class TilemapVisibility {
     private scene: BackEndGame;
     private shadowLayer: TilemapLayer;
     private activeRoom: Room | null;
+    private visitedRooms: Set<Room> = new Set<Room>();
+    private tempNumber: number = 0;
     
     constructor(scene: BackEndGame, shadowLayer: TilemapLayer) {
         this.shadowLayer = shadowLayer;
@@ -1070,7 +1115,7 @@ class TilemapVisibility {
         // init the enemies with invisible
         this.scene.enemies.forEach(
             enemy => {
-                enemy.sprite.alpha = 0;
+                enemy.sprite.alpha = 0; 
             }
         )
     }
@@ -1078,6 +1123,14 @@ class TilemapVisibility {
     setActiveRoom(room: Room) {
         // We only need to update the tiles if the active room has changed
         if (room !== this.activeRoom) {
+            
+            if (!this.visitedRooms.has(room)) {
+                this.visitedRooms.add(room);
+                this.scene.increaseExploredRoomNumber();
+                this.tempNumber += 1;
+                console.log(this.tempNumber);
+            }
+            
             this.setRoomAlpha(room, 0); // Make the new room visible
             if (this.activeRoom) this.setRoomAlpha(this.activeRoom, 0.5); // Dim the old room
             this.activeRoom = room;
