@@ -872,6 +872,46 @@ class Enemy {
         damage = Math.floor(damage * (1 - this.injuryFreeRate));
         console.log("怪物将收到" + damage + "点伤害");
         
+        const damageText = this.scene.add.text(
+            this.sprite.x,
+            this.sprite.y,
+            damage.toString(),
+            {
+                fontSize: "18px",
+                color: "#FF0000",
+            }
+        ).setOrigin(0.5)
+
+        const offsetX = Math.random() * 50 - 25;
+        
+        this.scene.tweens.add({
+            targets: damageText,
+            x: this.sprite.x + offsetX,
+            y: this.sprite.y - 50, 
+            alpha: 1,
+            scaleX: 1.2, 
+            scaleY: 1.2,
+            duration: 300, 
+            ease: "Sine.easeOut", 
+            yoyo: true, 
+            repeat: 0, 
+            onComplete: () => {
+                this.scene.tweens.add({
+                    targets: damageText,
+                    y: this.sprite.y, 
+                    alpha: 0.5, 
+                    scaleX: 1,
+                    scaleY: 1,
+                    ease: "Bounce.easeOut", 
+                    duration: 800, 
+                    repeat: 1, 
+                    onComplete: () => {
+                        damageText.destroy();
+                    }
+                });
+            }
+        })
+        
         if(this.health - damage <= 0){
             this.isDead = true;
             if (this.sprite.body) {
