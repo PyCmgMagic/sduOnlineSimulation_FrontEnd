@@ -5,7 +5,6 @@ import Tileset = Phaser.Tilemaps.Tileset;
 import TilemapLayer = Phaser.Tilemaps.TilemapLayer;
 import { Direction, TILE_MAPPING } from "./Types.ts";
 import {CommonFunction} from "../../../../utils/CommonFunction.ts";
-import {responseEncoding} from "axios";
 
 export class BackEndGame extends Scene
 {
@@ -959,11 +958,13 @@ class HealthBar {
     private readonly scene: BackEndGame;
     private readonly owner: Player;
     private graphics: Phaser.GameObjects.Graphics;
+    private readonly graphicsBg: Phaser.GameObjects.Graphics;
     private readonly MAXHEALTH: number;
     private readonly x: number;
     private readonly y: number;
     private readonly width: number;
     private readonly height: number;
+    private text: Phaser.GameObjects.Text;
 
     constructor(scene: BackEndGame, x: number, y: number, width: number, height: number = 5, maxHealth: number, owner: Player) {
         this.scene = scene;
@@ -979,19 +980,20 @@ class HealthBar {
         this.graphics.setDepth(10);
 
         // 设置背景
-        const graphicsBg = this.scene.add.graphics().setScrollFactor(0);
-        graphicsBg.setDepth(9);
-        graphicsBg.fillStyle(0x868388, 0.5);
-        graphicsBg.fillRect(this.x, this.y, this.width, this.height);
+        this.graphicsBg = this.scene.add.graphics().setScrollFactor(0);
+        this.graphicsBg.setDepth(9);
+        this.graphicsBg.fillStyle(0x868388, 0.5);
+        this.graphicsBg.fillRect(this.x, this.y, this.width, this.height);
         
         this.update(this.MAXHEALTH)
     }
 
     update(currentHealth: number){
         this.draw(currentHealth);
+        this.write(currentHealth);
     }
 
-    private draw(currentHealth: number) {
+    private draw(currentHealth: number): void {
         this.graphics.clear();
 
         const progress = currentHealth / this.MAXHEALTH; // 冷却百分比
@@ -999,6 +1001,14 @@ class HealthBar {
 
         this.graphics.fillStyle(0xB72121, 0.8);
         this.graphics.fillRect(this.x, this.y, barWidth, this.height);
+    }
+    
+    private write(currentHealth: number): void {
+        if (this.text) this.text.destroy();
+        this.text = this.scene.add.text(this.x + this.width / 2, this.y + this.height / 2, currentHealth + "/" + this.MAXHEALTH, {fontSize: "28px", color: "#ffffff", align: "center"})
+            .setScrollFactor(0)
+            .setOrigin(0.5, 0.5)
+            .setDepth(11);
     }
 
     destroy() {

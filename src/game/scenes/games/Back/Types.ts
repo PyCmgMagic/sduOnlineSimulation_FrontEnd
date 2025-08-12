@@ -43,3 +43,32 @@ export const TILE_MAPPING = {
         [205]
     ]
 };
+
+interface BackGameProperty {
+    playerProperty: PlayerProperty,
+    enemyProperty: EnemyProperty,
+    RoomNumber: number;
+}
+
+interface PlayerProperty {
+    health: number,
+    criticalHitRate: number,
+    criticalHitMultiplier: number,
+    injuryFreeRate: number,
+    minDamage: number,
+    damage: number,
+    speed: number,
+    attackCoolDown: number,
+}
+
+interface EnemyProperty {
+    speed: number,
+    health: number,
+    sight_distance: number,
+    damage: number,
+    minDamage: number,
+    criticalHitRate: number,
+    criticalHitMultiplier: number,
+    injuryFreeRate: number
+}
+
