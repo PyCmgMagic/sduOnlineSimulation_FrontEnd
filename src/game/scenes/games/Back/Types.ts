@@ -72,3 +72,18 @@ interface EnemyProperty {
     injuryFreeRate: number
 }
 
+export interface Info {
+    title: string,
+    content: string;
+}
+
+export const infoForIntro: Info = {
+    title: '游戏介绍',
+    content: '欢迎来到后端开发，在这里，你将成为一名后端开发人员，每探索一个房间将视为你完成一项功能的开发.\n注意房间中存在的Bug怪，用你的能力消灭他们！'
+}
+
+export const infoForOperation: Info = {
+    title: '操作说明',
+    content: '使用WASD控制玩家移动，使用方向键向指定方向发起攻击。\n可是，尽管是强大的后端开发人员，他处理Bug的能力有限，需要等到左下方进度条满时才能进行攻击哦！\n按下E建可以快速打开相关信息面板！'
+}
+
