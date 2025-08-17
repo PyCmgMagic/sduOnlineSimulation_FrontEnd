@@ -1,59 +1,58 @@
 import { GameObjects, Scene, Physics, Time } from "phaser";
 import {CommonFunction} from "../../../../utils/CommonFunction.ts";
-import SpriteWithDynamicBody = Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 import CursorKeys = Phaser.Types.Input.Keyboard.CursorKeys;
 import { CustomerOrder } from "../../Game.ts";
-
-interface ProductOrder {
-    DIFFICULTY: number;
-}
+import {FRUITS_TYPES, introduction, operation, ProductGameProperties} from "./Types.ts";
 
 export class ProductGame extends Scene 
 {
     private currentOrder: CustomerOrder;
-    /* const some key keyboard-key */
-    Key_D: Phaser.Input.Keyboard.Key | undefined 
-    Key_A: Phaser.Input.Keyboard.Key | undefined 
-    Key_SPACE: Phaser.Input.Keyboard.Key | undefined ;
+    /* 按键变量 */
+    private Key_D: Phaser.Input.Keyboard.Key | undefined 
+    private Key_A: Phaser.Input.Keyboard.Key | undefined 
+    private Key_SPACE: Phaser.Input.Keyboard.Key | undefined ;
     
-    /* base variable */
-    background: GameObjects.Image;
-    player: Physics.Matter.Sprite;
-    time_use_container: GameObjects.Container;
-    time_use: GameObjects.Text // time use
-    time_use_number: number = 0;
-    PLAYER_MOVE_SPEED: number[] = [4, 2, 2, 1, 1, 1, 1, 1];
-    PROBABILITY_PER_DIFFICULTY: number[][] = [[0.5, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0], [0.5, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0], [0.5, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0], [0.5, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0], [0.45, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0.05], [0.4, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0.1], [0.35, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0.15], [0.3, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0.2]];
-    TARGET_LEVEL: number = 7;
-    BAD_FRUIT_LEVEL: number = 8;
+    /* 游戏基础不可变变量 */
+    private player: Physics.Matter.Sprite;
+    private time_use: GameObjects.Text // 时间
+    private time_use_number: number = 0;
+    private score: number = 0; // 分数
+    private scoreText: Phaser.GameObjects.Text;
+    private TARGET_LEVEL: number = 7;
+    private BAD_FRUIT_LEVEL: number = 8;
+    private FRUITS_TYPES: string[];
+    private FRUITS_RADIUS: number[] = [20, 28, 36, 44, 52, 60, 68, 76];
+    
+    /* 事件 */
+    private timerEvent: Time.TimerEvent;
+    
+    /* 游戏配置变量 */
+    private PROPERTY: ProductGameProperties;
+    
+    /* 游戏变量 */
+    DIFFICULTY: number;
+    private PLAYER_MOVE_SPEED: number;
+    private PROBABILITY: number[];
+    private BAD_FRUIT_RADIUS: number | null;
+    private BAD_FRUIT_KEY: string | null;
     
     /* temp components before assets done */
     graphics : GameObjects.Graphics;
     platforms: MatterJS.BodyType[];
     pause_button: GameObjects.Container;
     
-    /* events */
-    timerEvent: Time.TimerEvent;
     
-    /* fruit game logical part */
+    /* 游戏逻辑全局所需变量 */
     // 暂时定为8个水果加一个坏水果， 最后一个是坏水果
-    FRUITS_TYPES: string[] = ['game-product-fruit1', 'game-product-fruit2', 'game-product-fruit3', 'game-product-fruit4', 'game-product-fruit5', 'game-product-fruit6', 'game-product-fruit7', 'game-product-fruit8', 'game-product-bad-fruit'];
-    FRUITS_RADIUS: number[] = [20, 28, 36, 44, 52, 60, 68, 76];
-    BAD_FRUIT_RADIUS: number[] = [20, 28, 32, 44];
-    BAD_FRUIT: string[] = ['game-product-bad-fruit-1', 'game-product-bad-fruit-2', 'game-product-bad-fruit-3', 'game-product-bad-fruit-4'];
-    fruits: Physics.Matter.Sprite[] = []; // a group of fruits has placed
-    dorpTimer: Time.TimerEvent;
-    waitingForDorp: boolean = false;
-    previewFruit: SpriteWithDynamicBody | null = null;
-    currentFruit: Phaser.Physics.Matter.Sprite | null = null;
+    private fruits: Physics.Matter.Sprite[] = []; // a group of fruits has placed
+    private previewFruitImage: GameObjects.Image;
+    private previewFruit: string;
+    private currentFruit: Phaser.Physics.Matter.Sprite | null = null;
     private wasSpaceDown: undefined | boolean = false;
     private static readonly PLACED_FRUIT_GROUP = 1;
     private static readonly UNPLACED_FRUIT_GROUP = -2;
     private static readonly MIN_PLACE_INTERVAL = 500;
     private lastPlaceTime: number = 0;
-    
-    /* difficulty level */
-    DIFFICULTY: number = 0; // [0, 7]
     
     
     constructor() 
@@ -73,29 +72,52 @@ export class ProductGame extends Scene
         });
     }
     
-    // 这里在游戏入口处将顾客订单分割，分别向四个游戏场景传递各自需要的数据？ 这里做了难度分级，不如让后端产生难度，然后前端根据难度进行游戏？
-    init(data: { order: CustomerOrder }) {
+    init(data: { order: CustomerOrder }): void {
         this.currentOrder = data.order;
         console.log('ProductGame received order:', this.currentOrder);
+        
+        // 将游戏变量清零
+        this.score = 0;
+        this.time_use_number = 0;
+        
+        // 初始化不可变量
+        this.FRUITS_TYPES = FRUITS_TYPES;
+        this.PROPERTY = ProductGameProperties[this.currentOrder.difficulty];
+        
+        // 提取游戏属性
+        this.DIFFICULTY = this.PROPERTY.DIFFICULTY;
+        this.PLAYER_MOVE_SPEED = this.PROPERTY.player_move_speed;
+        this.PROBABILITY = this.PROPERTY.PROBABILITY;
+        this.BAD_FRUIT_RADIUS = this.PROPERTY.BAD_FRUIT_RADIUS;
+        this.BAD_FRUIT_KEY = this.PROPERTY.BAD_FRUIT_KEY;
     }
 
-    preload() {
-        this.load.image('game-product-fruit1', 'assets/games/product/fruit-1.png');
-        this.load.image('game-product-fruit2', 'assets/games/product/fruit-2.png');
-        this.load.image('game-product-fruit3', 'assets/games/product/fruit-3.png');
-        this.load.image('game-product-fruit4', 'assets/games/product/fruit-4.png');
-        this.load.image('game-product-fruit5', 'assets/games/product/fruit-5.png');
-        this.load.image('game-product-fruit6', 'assets/games/product/fruit-6.png');
-        this.load.image('game-product-fruit7', 'assets/games/product/fruit-7.png');
-        this.load.image('game-product-fruit8', 'assets/games/product/fruit-8.png');
+    preload(): void{
+        // 加载所有水果图像
+        this.load.image('game-product-fruit1', 'assets/games/product/f-1.png');
+        this.load.image('game-product-fruit2', 'assets/games/product/f-2.png');
+        this.load.image('game-product-fruit3', 'assets/games/product/f-3.png');
+        this.load.image('game-product-fruit4', 'assets/games/product/f-4.png');
+        this.load.image('game-product-fruit5', 'assets/games/product/f-5.png');
+        this.load.image('game-product-fruit6', 'assets/games/product/f-6.png');
+        this.load.image('game-product-fruit7', 'assets/games/product/f-7.png');
+        this.load.image('game-product-fruit8', 'assets/games/product/f-8.png');
         this.load.image('game-product-bad-fruit-1', 'assets/games/product/bad-fruit-1.png');
         this.load.image('game-product-bad-fruit-2', 'assets/games/product/bad-fruit-2.png');
         this.load.image('game-product-bad-fruit-3', 'assets/games/product/bad-fruit-3.png');
         this.load.image('game-product-bad-fruit-4', 'assets/games/product/bad-fruit-4.png');
-        this.load.image("game-product-path", 'assets/games/product/path.png');
+        // 背景
+        this.load.image("game-product-background", "assets/games/product/background.png");
+        // 游戏图
+        this.load.spritesheet("game-product-player", "assets/games/product/player.png", {
+            frameWidth: 200,
+            frameHeight: 300,
+            margin: 0,
+            spacing: 0
+        });
     }
     
-    create()
+    create(): void
     {
         this.checkAssets();
         this.createBackGround();
@@ -105,17 +127,15 @@ export class ProductGame extends Scene
         this.Key_SPACE = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
         this.Key_A = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.A)
         
-        this.createTitle();
         this.createIntroArea();
         this.createOperationArea();
-        this.createLevelArea();
-        this.createPathArea();
-        this.createTimerArea();
+        this.createBoardArea();
         this.initPause();
         this.initPlayer();
         this.createAnims();
         this.createGameArea();
         this.generateNewFruit();
+        this.initNextFruit();
         this.createCollisionDetection();
         this.createResetButton();
     }
@@ -128,20 +148,20 @@ export class ProductGame extends Scene
         const cursors: CursorKeys = this.input.keyboard.createCursorKeys();
         
         if (cursors.left.isDown || this.Key_A?.isDown) {
-            this.player.setVelocityX(0 - this.PLAYER_MOVE_SPEED[this.DIFFICULTY])
+            this.player.setVelocityX(0 - this.PLAYER_MOVE_SPEED)
             if (this.anims.exists('player-move-left')) {
                 this.player.anims.play('player-move-left', true);
             }
             if (this.currentFruit) {
-                this.currentFruit.setVelocityX(0 - this.PLAYER_MOVE_SPEED[this.DIFFICULTY])
+                this.currentFruit.setVelocityX(0 - this.PLAYER_MOVE_SPEED)
             }
         } else if(cursors.right.isDown || this.Key_D?.isDown) {
-            this.player.setVelocityX(this.PLAYER_MOVE_SPEED[this.DIFFICULTY])
+            this.player.setVelocityX(this.PLAYER_MOVE_SPEED)
             if (this.anims.exists('player-move-right')) {
                 this.player.anims.play('player-move-right', true);
             }
             if (this.currentFruit) {
-                this.currentFruit.setVelocityX(this.PLAYER_MOVE_SPEED[this.DIFFICULTY])
+                this.currentFruit.setVelocityX(this.PLAYER_MOVE_SPEED)
             }
         } else {
             this.player.setVelocityX(0);
@@ -174,41 +194,11 @@ export class ProductGame extends Scene
     }
     
     private createBackGround() {
-        this.cameras.main.setBackgroundColor(Phaser.Display.Color.GetColor(254, 234, 201));
-
-        // 定义气泡属性
-        const bubbleColors = [0xffd700, 0xffa500, 0xff6347];
-        const bubbleMinRadius = 10;
-        const bubbleMaxRadius = 50;
-        const bubbleCount = 5;
-
-        for (let i = 0; i < bubbleCount; i++) {
-            // 随机生成气泡属性
-            const radius = Phaser.Math.Between(bubbleMinRadius, bubbleMaxRadius);
-            const x = Phaser.Math.Between(0, this.game.config.width as number);
-            const y = Phaser.Math.Between(0, this.game.config.height as number);
-            const color = Phaser.Utils.Array.GetRandom(bubbleColors);
-            const duration = Phaser.Math.Between(3000, 8000);
-
-            // 创建气泡，初始位置在屏幕上方
-            const startY = -radius;
-            const bubble = this.add.circle(x, startY, radius, color, 0.6);
-
-            // 添加气泡动画，从屏幕上方移动到初始随机位置
-            this.tweens.add({
-                targets: bubble,
-                y: y, // 目标位置为初始随机生成的 y 坐标
-                alpha: 0,
-                duration: duration,
-                ease: 'Linear',
-                repeat: -1,
-                yoyo: false
-            });
-        }
+        this.add.image(this.cameras.main.centerX, this.cameras.main.centerY, "game-product-background");
     }
     
     private initPlayer() {
-        this.player = this.matter.add.sprite(514, 348 - 140, 'game-product-player', 4, {
+        this.player = this.matter.add.sprite(604, 348 - 140, 'game-product-player', 4, {
             isStatic: false,
             friction: 0,
             collisionFilter: {
@@ -216,7 +206,7 @@ export class ProductGame extends Scene
                 mask: 0x0004
             }
         });
-        this.player.setScale(1.3);
+        this.player.setScale(0.3);
         this.player.setFixedRotation()
     }
     
@@ -241,15 +231,15 @@ export class ProductGame extends Scene
     }
     
     private createGameArea() {
-        const rectWidth: number = 400;
-        const rectHeight: number = 512;
-        const rectX: number = 514 - rectWidth / 2;
-        const rectY: number = 768 - rectHeight;
+        const rectWidth: number = 426;
+        const rectHeight: number = 480;
+        const rectX: number = 391;
+        const rectY: number = 240;
         this.graphics = this.add.graphics();
-        this.graphics.fillStyle(0x808080, 0.5);
-        this.graphics.lineStyle(2, 0x000000, 0.8);
-        this.graphics.strokeRect(rectX, rectY, rectWidth, rectHeight);
-        this.graphics.fillRect(rectX, rectY, rectWidth, rectHeight);
+        this.graphics.fillStyle(0xfcf5d3, 0.5);
+        this.graphics.lineStyle(2, 0xebd394, 0.8);
+        this.graphics.strokeRoundedRect(rectX, rectY, rectWidth, rectHeight, 10);
+        this.graphics.fillRoundedRect(rectX, rectY, rectWidth, rectHeight, 10);
 
         /* boundary */
         this.platforms = [
@@ -307,25 +297,45 @@ export class ProductGame extends Scene
     
     private incrementTimer() {
         this.time_use_number++;
-        this.time_use.setText(`${this.time_use_number}`);
+        this.time_use.setText(this.timeFormat(this.time_use_number));
+    }
+    
+    private createBoardArea(): void {
+        this.createTimerArea();
+        this.createLevelArea();
+        this.createScoreArea();
+    }
+    
+    private createScoreArea(): void {
+        this.add.text(1008, 66, "分数: ", {
+            fontSize: "24px",
+            fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
+        }).setOrigin(0.5)
+        this.scoreText = this.add.text(1107, 66, this.score.toString(), {
+            fontSize: "32px",
+            fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
+        }).setOrigin(0.5)
+    }
+    
+    private updateScoreText(deltaScore: number): void {
+        this.score += deltaScore;
+        this.scoreText.setText(this.score.toString());
     }
     
     private createTimerArea() {
         
-        const time_title = this.add.text(0, 0, '用时：', {
+        this.add.text(1008, 114, '用时: ', {
             fontSize: "24px",
-            color: '#4d2600',
+            color: '#ffffff',
             align: 'center',
             fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
-        })
-        this.time_use = this.add.text(0, time_title.height + 10, `${this.time_use_number}`, {
+        }).setOrigin(0.5)
+        this.time_use = this.add.text(1104, 114, `00:00`, {
             fontSize: "32px",
-            color: '#4d2600',
+            color: '#ffffff',
             align: 'center',
             fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
-        });
-
-        this.time_use_container = this.add.container(10, 400, [time_title, this.time_use]);
+        }).setOrigin(0.5);
 
         this.timerEvent = this.time.addEvent({
             delay: 1000,
@@ -340,47 +350,13 @@ export class ProductGame extends Scene
                 this.timerEvent.destroy();
             }
         });
-        
-        const padding = 20; // 内边距
-        const cornerRadius = 10; // 圆角半径
-        
-        const rectWidth = time_title.width + 2 * padding;
-        const rectHeight = time_title.height + this.time_use.height + 2 * padding;
-        
-        const sceneWidth = this.cameras.main.width;
-        const rectX = sceneWidth - rectWidth - padding;
-        const rectY = padding;
-        
-        const graphics = this.add.graphics();
-        graphics.fillStyle(0xffe6b3, 0.8);
-        graphics.lineStyle(2, 0xcc6600, 0.8); 
-        graphics.strokeRoundedRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
-        graphics.fillRoundedRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
-
-        // 调整时间文本位置到圆角矩形内
-        this.time_use_container.setPosition(rectX + padding, rectY + padding);
-    }
-    
-    private createTitle() : void{
-        this.add.text( this.cameras.main.width / 2 - 100, 20, "前端开发", {
-            fontSize: "36px",
-            fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
-            color: '#4d2600',
-            align: 'center',
-            padding: {
-                left: 10,
-                right: 10,
-                top: 5,
-                bottom: 5
-            }
-        })
     }
     
     private createIntroArea() {
-        const rectWidth = 295;
-        const rectHeight = 390;
-        const rectX = 10;
-        const rectY = 100;
+        const rectWidth = 254;
+        const rectHeight = 348;
+        const rectX = 60;
+        const rectY = 108;
         
         const padding = 8;
         const cornerRadius = 8;
@@ -390,12 +366,8 @@ export class ProductGame extends Scene
         graphics.strokeRoundedRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
         graphics.fillRoundedRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
         
-        const intro: string = '📃游戏介绍 ' +
-            '\u3000🎮欢迎来到《产品大冒险》！这是一场充满乐趣与挑战的产品设计之旅哦！在游戏里，你将化身为一位超级厉害的产品设计师，开启一场别开生面的想法合成大冒险。\n' +
-            '\u3000💡游戏中有8种不同的想法，每种想法都有独特的色彩，还有一种神秘的坏想法哦。你要巧妙地将相同的想法碰撞在一起，擦出思想的火花，形成更高级的构思。最终构思出你的产品！\n' +
-            '\u3000⏱️在游戏过程中，你还得时刻关注用时，争取用最短的时间完成任务，成为顶尖的产品设计师！快来冒险吧！'
-        const text = this.add.text(rectX + padding, rectY + padding, intro, {
-            fontSize: '18px',
+        const text = this.add.text(rectX + padding, rectY + padding, introduction, {
+            fontSize: '14px',
             color: '#4d2600',
             align: 'left',
             fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
@@ -405,15 +377,11 @@ export class ProductGame extends Scene
         
     }
     
-    private createPathArea() : void {
-        this.add.image(870, 350, 'game-product-path');
-    }
-    
     private createOperationArea() {
-        const rectWidth = 295;
-        const rectHeight = 200;
-        const rectX = 10;
-        const rectY = 520;
+        const rectWidth = 254;
+        const rectHeight = 174;
+        const rectX = 60;
+        const rectY = 494;
         
         const padding = 5;
         const cornerRadius = 5;
@@ -423,13 +391,8 @@ export class ProductGame extends Scene
         graphics.strokeRoundedRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
         graphics.fillRoundedRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
         
-        const operationIntro: string = '🎮游戏操作 '+
-            '\u3000🚶‍♂️使用键盘的方向键或A/D或←/→键控制玩家移动。\n' +
-            '\u3000🪄点击空格键开始放置想法。\n' +
-            '\u3000🔥将相同的想法碰撞在一起，擦出火花，形成更高级的构思。\n' +
-            '\u3000⭐注意时间，争取用最短的时间完成任务！'
-        const text = this.add.text(rectX + padding, rectY + padding, operationIntro, {
-            fontSize: '18px',
+        const text = this.add.text(rectX + padding, rectY + padding, operation, {
+            fontSize: '15px',
             color: '#59391F',
             align: 'left',
             fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
@@ -438,43 +401,54 @@ export class ProductGame extends Scene
     }
     
     private createLevelArea() {
-        const rectWidth = 200;
-        const rectHeight = 50;
         
-        const rectX = 650;
-        const rectY = 20;
-        
-        const padding = 10;
-        const cornerRadius = 10;
-        
-        const graphics = this.add.graphics();
-        graphics.fillStyle(0xffe6b3, 0.8);
-        graphics.lineStyle(2, 0xcc6600, 0.8);
-        graphics.strokeRoundedRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
-        graphics.fillRoundedRect(rectX, rectY, rectWidth, rectHeight, cornerRadius);
-        const text: string = '🏆当前游戏难度：' + `${this.DIFFICULTY}`;
-        
-        const levelText = this.add.text(rectX + padding, rectY + padding, text, {
-            fontSize: '20px',
-            color: '#4d2600',
+        this.add.text(1030,165, "游戏难度: ", {
+            fontSize: '24px',
+            color: '#ffffff',
             align: 'left',
             fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
-        });
+        }).setOrigin(0.5);
         
-        levelText.setWordWrapWidth(rectWidth - padding * 2, true);
+        this.add.text(1137, 165, this.DIFFICULTY.toString(), {
+            fontSize: '32px',
+            color: '#ffffff',
+            align: 'left',
+            fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
+        }).setOrigin(0.5);
     }
     
     private initPause()
     {
-        /* pause */
-        this.pause_button = CommonFunction.createButton(this, 120, 30, 'button-normal', 'button-pressed', 'Pause', 10, () => {
+        const pauseGraphics = this.add.graphics();
+        pauseGraphics.fillStyle(0xfbf6dc, 0.9);
+        pauseGraphics.fillRoundedRect(30, 27, 121, 42, 8);
+        
+        const pause = this.add.text(89, 47, "暂停", {
+            fontSize: '24px',
+            color: '#000000',
+            align: 'center',
+            fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
+        }).setOrigin(0.5);
+        
+        pauseGraphics.setInteractive(new Phaser.Geom.Rectangle(30, 27, 121, 42), Phaser.Geom.Rectangle.Contains);
+        
+        pauseGraphics.on("pointerdown", () => {
             this.scene.pause();
             this.scene.launch('PauseMenu', { callerScene: this.scene.key });
-            this.pause_button.setVisible(false);
+            pauseGraphics.setVisible(false);
+            pause.setVisible(false);
+            
+            // this.scene.pause();
+            // this.scene.launch("GameSuccessForProduct", {
+            //     currentOrder: this.currentOrder,
+            //     score: this.score,
+            //     time: this.time_use.text,
+            // })
         })
 
         this.events.on('resume-game', () => {
-            this.pause_button.setVisible(true);
+            pauseGraphics.setVisible(true);
+            pause.setVisible(true);
         })
 
         // 在场景销毁时移除监听
@@ -487,15 +461,27 @@ export class ProductGame extends Scene
         };
     }
     
+    private initNextFruit(): void
+    {
+        if (this.previewFruitImage) this.previewFruitImage.destroy();
+        this.previewFruit = CommonFunction.RandomDistribution(this.FRUITS_TYPES, this.PROBABILITY);
+        const index = this.FRUITS_TYPES.indexOf(this.previewFruit)
+        if (index == this.BAD_FRUIT_LEVEL) {
+            this.previewFruitImage = this.add.image(1060, 320, this.BAD_FRUIT_KEY!).setOrigin(0.5);
+        } else {
+            this.previewFruitImage = this.add.image(1060, 320, this.previewFruit).setOrigin(0.5);
+        }
+    }
+    
     private generateNewFruit()
     {
-        const randomType = CommonFunction.RandomDistribution(this.FRUITS_TYPES, this.PROBABILITY_PER_DIFFICULTY[this.DIFFICULTY]);
+        const randomType = this.previewFruit ? this.previewFruit : this.FRUITS_TYPES[0];
         const randomLevel = this.FRUITS_TYPES.indexOf(randomType);
         if (randomLevel == this.BAD_FRUIT_LEVEL) {
-            this.currentFruit = this.matter.add.sprite(this.player.x, this.player.y + 100, this.BAD_FRUIT[this.DIFFICULTY - 4], undefined, {
+            this.currentFruit = this.matter.add.sprite(this.player.x, this.player.y + 100, this.BAD_FRUIT_KEY!, undefined, {
                 shape: {
                     type: 'circle',
-                    radius: this.BAD_FRUIT_RADIUS[this.DIFFICULTY - 4] / 2
+                    radius: this.BAD_FRUIT_RADIUS! / 2
                 },
                 collisionFilter: {
                     group: ProductGame.UNPLACED_FRUIT_GROUP,
@@ -553,9 +539,20 @@ export class ProductGame extends Scene
     }
     
     private createResetButton() {
-        const x = this.cameras.main.centerX;
-        const y = this.cameras.main.centerY;
-        CommonFunction.createButton(this, x + 350, y + 350, 'button-normal', 'button-pressed', '重新开始', 10, () => {
+        const graphics = this.add.graphics();
+        graphics.fillStyle(0xfbf6dc, 0.9);
+        graphics.fillRoundedRect(181, 27, 119, 42, 8);
+        
+        this.add.text(239, 47, "重新开始", {
+            fontSize: '24px',
+            color: '#000000',
+            align: 'center',
+            fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
+        }).setOrigin(0.5);
+        
+        graphics.setInteractive(new Phaser.Geom.Rectangle(181, 27, 119, 42), Phaser.Geom.Rectangle.Contains);
+        
+        graphics.on("pointerdown", () => {
             this.resetGame();
         })
     }
@@ -572,6 +569,10 @@ export class ProductGame extends Scene
         }
         
         this.generateNewFruit();
+        this.time_use_number = 0;
+        this.score = 0;
+        this.scoreText.setText("0");
+        this.time_use.setText("00:00");
     }
     
     private placeFruits()
@@ -587,6 +588,7 @@ export class ProductGame extends Scene
             this.currentFruit = null;
             
             this.generateNewFruit();
+            this.initNextFruit();
         }
     }
     
@@ -640,10 +642,11 @@ export class ProductGame extends Scene
             newFruit.setFriction(0);
             newFruit.setScale( 1.5 );
             this.fruits.push(newFruit);
+            this.updateScoreText(100);
 
             if (newLevelNumber === this.TARGET_LEVEL) {
                 this.scene.pause();
-                this.scene.start('GameSuccessForProduct', {currentOrder: this.currentOrder});
+                this.scene.launch('GameSuccessForProduct', {currentOrder: this.currentOrder, score: this.score, time: this.timeFormat(this.time_use_number)});
                 // CommonFunction.createConfirmPopup(this, 512, 368,1024, 500, '您的产品设计已完成！', '成功啊', () => {
                 //     console.log('产品开发完成，返回开发中心!');
                 //
@@ -657,5 +660,22 @@ export class ProductGame extends Scene
                 // })
             }
         }
+    }
+    
+    private timeFormat(time: number): string{
+        const second = time % 60;
+        const minute = (time - second) / 60;
+        let result: string;
+        if (minute < 10) {
+            result = "0" + minute;
+        } else {
+            result = minute.toString();
+        }
+        if (second < 10) {
+            result += ":0" + second;
+        } else {
+            result += ":" + second;
+        }
+        return result;
     }
 }

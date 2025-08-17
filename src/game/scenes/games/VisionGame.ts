@@ -574,15 +574,34 @@ export class VisionGame extends Scene
     }
     
     private showModalBox(): void {
-        CommonFunction.createConfirmPopup(this, 512, 384, 1024, 500, "恭喜你，你完成了视觉开发！", "成功", () => {
+        
+        const graphics = this.add.graphics();
+        graphics.fillStyle(0x000000, 0.5);
+        graphics.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
+        graphics.setDepth(10);
+        
+        const width = 600;
+        const height = 400;
+        const x = this.cameras.main.centerX - width / 2;
+        const y = this.cameras.main.centerY - height / 2;
+        
+        graphics.fillStyle(0x9cbf86, 1);
+        graphics.fillRoundedRect(x, y, width, height, 20);
+        
+        this.add.text(this.cameras.main.centerX, this.cameras.main.centerY - 100, '恭喜你，你完成了视觉绘制！', {
+            fontSize: '32px',
+            color: '#FFFFFF',
+            align: 'center',
+            fontFamily: "Arial"
+        }).setOrigin(0.5).setDepth(11);
+        
+        CommonFunction.createButton(this, this.cameras.main.centerX, this.cameras.main.centerY + 20,"button-normal", "button-pressed", "确定", 11, () => {
             console.log('视觉设计完成，返回开发中心');
-
             const task = this.currentOrder.items.find(item => item.item.id === 'visual_design');
             if (task) {
                 task.status = 'completed';
                 console.log(`任务 ${task.item.name} 已标记为完成`);
             }
-
             this.scene.start('GameEntrance', {order: this.currentOrder});
         })
     }

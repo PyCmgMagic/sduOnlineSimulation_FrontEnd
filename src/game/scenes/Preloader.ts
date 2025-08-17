@@ -817,10 +817,6 @@ export class Preloader extends Scene
 
         // 加载产品游戏资源
         this.load.setPath('assets/games/product');
-        this.load.spritesheet('game-product-player', 'dude.png', {
-            frameWidth: 32,
-            frameHeight: 48
-        });
         this.load.image('game-product-platform', 'platform.png');
         this.load.setPath('assets/'); // 恢复资源路径
         //加载前端游戏资源

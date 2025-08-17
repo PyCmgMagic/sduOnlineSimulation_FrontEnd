@@ -44,7 +44,7 @@ export class BackEndGame extends Scene
                         y: 0,
                         x: 0
                     },
-                    debug: true
+                    debug: false
                 }
             }
         });
@@ -549,20 +549,19 @@ class Player {
     readonly sprite: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
     private readonly keys: Phaser.Types.Input.Keyboard.CursorKeys;
     // player properties
-    private DIFFICULTY: number;
     private MAXHEALTH: number = 50;
     private health: number = 50;
-    private criticalHitRate = 0.08;
-    private criticalHitMultiplier = 1.10;
-    private injuryFreeRate: number = 0.1;
-    private minDamage: number = 10;
-    private damage: number = 50;
-    private speed: number = 300;
-    private attackRange: number = 100;
+    private readonly criticalHitRate: number = 0.08;
+    private readonly criticalHitMultiplier: number = 1.10;
+    private readonly injuryFreeRate: number = 0.1;
+    private readonly minDamage: number = 10;
+    private readonly damage: number = 50;
+    private readonly speed: number = 300;
+    private readonly attackRange: number = 100;
     private readonly ATTACKCOOLDOWNTIME: number = 3000;
     private attackCoolDown: number = 3000;
-    private attackBar: AttackCoolDownBar;
-    private healthBar: HealthBar;
+    private readonly attackBar: AttackCoolDownBar;
+    private readonly healthBar: HealthBar;
     private isInvincible: boolean = false;
     private invincibleDuration: number = 0;
     private flashTimer: number = 0;
