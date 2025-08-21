@@ -11,8 +11,7 @@ export class FrontEndGamePop extends Phaser.Scene {
     private content: Phaser.GameObjects.Text;
     private gameTargets: GameTargets;
     private targetText: Phaser.GameObjects.Text;
-    private content1: Phaser.GameObjects.Text;
-    private content2: Phaser.GameObjects.Text;
+
     
     constructor() {
         super('FrontEndGamePop');

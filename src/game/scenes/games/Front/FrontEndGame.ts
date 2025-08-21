@@ -185,14 +185,6 @@ export class FrontEndGame extends Scene {
         }
     }
 
-    private createDisplayArea(x: number, y: number, title: string): void {
-        const bg = this.add.graphics();
-        bg.fillStyle(0xFFF8DC, 0.9);
-        bg.fillRoundedRect(x - 10, y - 10, 120, 100, 10);
-        bg.lineStyle(2, 0xF4A460, 1);
-        bg.strokeRoundedRect(x - 10, y - 10, 120, 100, 10);
-        this.add.text(x, y, title, { fontSize: '18px', color: '#8B4513', fontFamily: '"Comic Sans MS", cursive' });
-    }
     private createBoard(): void {
         this.boardGraphics = this.add.graphics();
         this.drawBoard();
