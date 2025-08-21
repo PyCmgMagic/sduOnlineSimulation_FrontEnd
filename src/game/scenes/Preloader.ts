@@ -1,5 +1,4 @@
 import { Scene } from 'phaser';
-import { FrontEndGame } from './games/FrontEndGame';
 
 export class Preloader extends Scene
 {
@@ -749,7 +748,7 @@ export class Preloader extends Scene
         this.load.image('game-entrance-arrow-w', 'game-entrance/arrow_w.png');
         
         // 加载UI组件
-        // this.load.image('button', 'ui/button.png');
+        this.load.image('pause', 'ui/icons/pause.png');
         // this.load.image('panel', 'ui/panel.png');
         // this.load.image('dialog', 'ui/dialog.png');
         
@@ -831,13 +830,16 @@ export class Preloader extends Scene
      */
     private loadAudioAssets(): void
     {
+        this.load.setPath('assets/'); // 恢复资源路径
+
         // 加载背景音乐
         // this.load.audio('bgm-menu', 'audio/bgm-menu.mp3');
-        // this.load.audio('bgm-game', 'audio/bgm-game.mp3');
+        this.load.audio('bgm-FrontEndGame', 'audio/bgm-FrontEndGame.mp3');
         
         // 加载音效
-        // this.load.audio('sfx-click', 'audio/sfx-click.wav');
-        // this.load.audio('sfx-success', 'audio/sfx-success.wav');
+        this.load.audio('lose', 'audio/lose.wav');
+        this.load.audio('ball-tap', 'audio/ball-tap.wav');
+        this.load.audio('success', 'audio/success.wav');
         // this.load.audio('sfx-error', 'audio/sfx-error.wav');
         
         console.log('🔊 Audio assets queued for loading');

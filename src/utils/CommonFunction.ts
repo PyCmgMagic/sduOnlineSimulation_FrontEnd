@@ -110,6 +110,8 @@ export class CommonFunction
         return container;
         
     }
+
+
     /**
      * 创建 book 图标按钮
      * @param scene - 当前场景
@@ -126,9 +128,10 @@ export class CommonFunction
         y: number = 50,
         title: string = '',
         text: string = '',
+        f?:() => void,
         callback?: () => void,
         scale: number = 1,
-        depth: number = 100
+        depth: number = 100,
     ): GameObjects.Image {
         const icon = scene.add.image(x, y, 'zhinan').setInteractive().setScale(scale).setDepth(depth);
         icon.on('pointerover', () => {
@@ -140,13 +143,14 @@ export class CommonFunction
         icon.on('pointerdown', () => {
             if (callback) {
                 callback();
-            } else {
+            } else if(f){
+                f();
+            }else {
                 CommonFunction.showGameIntroPopup(scene,title,text);
             }
         });
         return icon;
     }
-
     /**
      * 弹窗（静态方法，供 book 图标按钮调用）
      * @param scene - 当前场景

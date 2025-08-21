@@ -9,7 +9,9 @@ import { ProductGame } from "./scenes/games/Product/ProductGame.ts";
 import { GameEntrance } from "./scenes/GameEntrance.ts";
 import { PauseMenu } from "./scenes/PauseMenu.ts";
 import { VisionGame } from "./scenes/games/VisionGame.ts";
-import { FrontEndGame } from "./scenes/games/FrontEndGame.ts";
+import { FrontEndGame } from "./scenes/games/Front/FrontEndGame.ts";
+import { FrontEndGamePop } from "./scenes/games/Front/FrontEndGamePop.ts";
+import { GameSuccessForFront } from "./scenes/games/Front/GameSuccessForFront.ts";
 import { BackEndGame } from "./scenes/games/Back/BackEndGame.ts";
 import {GameSuccessForProduct} from "./scenes/games/Product/GameSuccessForProduct.ts";
 import { BackEndGamePop } from "./scenes/games/Back/BackEndGamePop.ts";
@@ -39,6 +41,8 @@ const config: Phaser.Types.Core.GameConfig = {
         PauseMenu,
         VisionGame,
         FrontEndGame,
+        FrontEndGamePop,
+        GameSuccessForFront,
         BackEndGame,
         GameSuccessForProduct,
         BackEndGamePop,
