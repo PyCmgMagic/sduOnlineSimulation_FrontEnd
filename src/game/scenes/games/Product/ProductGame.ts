@@ -54,6 +54,10 @@ export class ProductGame extends Scene
     private static readonly MIN_PLACE_INTERVAL = 500;
     private lastPlaceTime: number = 0;
     
+    // 音乐
+    private bgMusic: Phaser.Sound.NoAudioSound | Phaser.Sound.HTML5AudioSound | Phaser.Sound.WebAudioSound;
+    private buttonClickSound: Phaser.Sound.NoAudioSound | Phaser.Sound.HTML5AudioSound | Phaser.Sound.WebAudioSound;
+    private mergeSound: Phaser.Sound.NoAudioSound | Phaser.Sound.HTML5AudioSound | Phaser.Sound.WebAudioSound;
     
     constructor() 
     {
@@ -115,12 +119,18 @@ export class ProductGame extends Scene
             margin: 0,
             spacing: 0
         });
+        // 音乐
+        this.load.audio("game-product-bg-audio", "assets/audio/product/Canon-in-D-product.mp3")
+        this.load.audio("game-product-button-click", "assets/audio/product/button-click.mp3");
+        this.load.audio("game-product-merge", "assets/audio/product/merge.mp3");
     }
     
     create(): void
     {
         this.checkAssets();
         this.createBackGround();
+        this.createSoundAll();
+        this.playSound();
         
         /* init keys */
         this.Key_D = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.D)
@@ -197,6 +207,19 @@ export class ProductGame extends Scene
         this.add.image(this.cameras.main.centerX, this.cameras.main.centerY, "game-product-background");
     }
     
+    private createSoundAll(): void {
+        this.buttonClickSound = this.sound.add("game-product-button-click");
+        this.mergeSound = this.sound.add("game-product-merge");
+    }
+    
+    private playSound() {
+        this.bgMusic = this.sound.add("game-product-bg-audio");
+        this.bgMusic.play({
+            loop: true,
+            volume: 0.1
+        });
+    }
+    
     private initPlayer() {
         this.player = this.matter.add.sprite(604, 348 - 140, 'game-product-player', 4, {
             isStatic: false,
@@ -211,23 +234,29 @@ export class ProductGame extends Scene
     }
     
     private createAnims() {
-        this.anims.create({
-            key: 'player-move-left',
-            frames: this.anims.generateFrameNumbers('game-product-player', { start: 0, end: 3 }),
-            frameRate: 10,
-            repeat: -1
-        })
-        this.anims.create({
-            key: "player-move-right",
-            frames: this.anims.generateFrameNumbers('game-product-player', { start: 5, end: 8 }),
-            frameRate: 10,
-            repeat: -1
-        })
-        this.anims.create({
-            key: 'player-move-turn',
-            frames: [{ key: 'game-product-player', frame: 4 }],
-            frameRate: 20,
-        })
+        if (!this.anims.exists('player-move-left')) {
+            this.anims.create({
+                key: 'player-move-left',
+                frames: this.anims.generateFrameNumbers('game-product-player', { start: 0, end: 3 }),
+                frameRate: 10,
+                repeat: -1
+            })
+        }
+        if (!this.anims.exists('player-move-right')) {
+            this.anims.create({
+                key: "player-move-right",
+                frames: this.anims.generateFrameNumbers('game-product-player', { start: 5, end: 8 }),
+                frameRate: 10,
+                repeat: -1
+            })
+        }
+        if (!this.anims.exists('player-move-turn')) {
+            this.anims.create({
+                key: 'player-move-turn',
+                frames: [{ key: 'game-product-player', frame: 4 }],
+                frameRate: 20,
+            })
+        }
     }
     
     private createGameArea() {
@@ -433,17 +462,12 @@ export class ProductGame extends Scene
         pauseGraphics.setInteractive(new Phaser.Geom.Rectangle(30, 27, 121, 42), Phaser.Geom.Rectangle.Contains);
         
         pauseGraphics.on("pointerdown", () => {
+            this.buttonClickSound.play();
+            
             this.scene.pause();
             this.scene.launch('PauseMenu', { callerScene: this.scene.key });
             pauseGraphics.setVisible(false);
             pause.setVisible(false);
-            
-            // this.scene.pause();
-            // this.scene.launch("GameSuccessForProduct", {
-            //     currentOrder: this.currentOrder,
-            //     score: this.score,
-            //     time: this.time_use.text,
-            // })
         })
 
         this.events.on('resume-game', () => {
@@ -553,6 +577,10 @@ export class ProductGame extends Scene
         graphics.setInteractive(new Phaser.Geom.Rectangle(181, 27, 119, 42), Phaser.Geom.Rectangle.Contains);
         
         graphics.on("pointerdown", () => {
+            this.buttonClickSound.play({
+                loop: false,
+                volume: 0.1
+            });
             this.resetGame();
         })
     }
@@ -643,21 +671,12 @@ export class ProductGame extends Scene
             newFruit.setScale( 1.5 );
             this.fruits.push(newFruit);
             this.updateScoreText(100);
+            this.mergeSound.play();
 
             if (newLevelNumber === this.TARGET_LEVEL) {
+                this.bgMusic.stop();
                 this.scene.pause();
                 this.scene.launch('GameSuccessForProduct', {currentOrder: this.currentOrder, score: this.score, time: this.timeFormat(this.time_use_number)});
-                // CommonFunction.createConfirmPopup(this, 512, 368,1024, 500, '您的产品设计已完成！', '成功啊', () => {
-                //     console.log('产品开发完成，返回开发中心!');
-                //
-                //     const task = this.currentOrder.items.find(item => item.item.id === 'product_design');
-                //     if (task) {
-                //         task.status = 'completed';
-                //         console.log(`任务 ${task.item.name} 已标记为完成`);
-                //     }
-                //
-                //     this.scene.start('GameEntrance', {order: this.currentOrder});
-                // })
             }
         }
     }
