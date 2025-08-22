@@ -47,6 +47,8 @@ export const TILE_MAPPING = {
 export interface BackGameProperty {
     playerProperty: PlayerProperty,
     enemyProperty: EnemyProperty,
+    timeLimit: number,
+    roomNumber: number,
 }
 
 export interface PlayerProperty {
@@ -93,10 +95,109 @@ export interface GameResult {
     functionCompleted: number,
     totalFunction: number,
     time: number;
+    time_remaining: number;
 }
 
 export const properties: BackGameProperty[] = [
     {
+        timeLimit: 240,
+        roomNumber: 20,
+        playerProperty: {
+            health: 50,
+            criticalHitRate: 0.08,
+            criticalHitMultiplier: 1.10,
+            injuryFreeRate: 0.1,
+            minDamage: 10,
+            damage: 50,
+            speed: 300,
+            attackCoolDown: 3000,
+        },
+        enemyProperty: {
+            speed: 100,
+            health: 100,
+            sight_distance: 200,
+            damage: 10,
+            minDamage: 5,
+            criticalHitRate: 0.08,
+            criticalHitMultiplier: 1.10,
+            injuryFreeRate: 0.1
+        },
+    },
+    {
+        timeLimit: 240,
+        roomNumber: 20,
+        playerProperty: {
+            health: 50,
+            criticalHitRate: 0.08,
+            criticalHitMultiplier: 1.10,
+            injuryFreeRate: 0.1,
+            minDamage: 10,
+            damage: 50,
+            speed: 300,
+            attackCoolDown: 3000,
+        },
+        enemyProperty: {
+            speed: 100,
+            health: 100,
+            sight_distance: 200,
+            damage: 10,
+            minDamage: 5,
+            criticalHitRate: 0.08,
+            criticalHitMultiplier: 1.10,
+            injuryFreeRate: 0.1
+        },
+    },
+    {
+        timeLimit: 240,
+        roomNumber: 20,
+        playerProperty: {
+            health: 50,
+            criticalHitRate: 0.08,
+            criticalHitMultiplier: 1.10,
+            injuryFreeRate: 0.1,
+            minDamage: 10,
+            damage: 50,
+            speed: 300,
+            attackCoolDown: 3000,
+        },
+        enemyProperty: {
+            speed: 100,
+            health: 100,
+            sight_distance: 200,
+            damage: 10,
+            minDamage: 5,
+            criticalHitRate: 0.08,
+            criticalHitMultiplier: 1.10,
+            injuryFreeRate: 0.1
+        },
+    },
+    {
+        timeLimit: 240,
+        roomNumber: 20,
+        playerProperty: {
+            health: 50,
+            criticalHitRate: 0.08,
+            criticalHitMultiplier: 1.10,
+            injuryFreeRate: 0.1,
+            minDamage: 10,
+            damage: 50,
+            speed: 300,
+            attackCoolDown: 3000,
+        },
+        enemyProperty: {
+            speed: 100,
+            health: 100,
+            sight_distance: 200,
+            damage: 10,
+            minDamage: 5,
+            criticalHitRate: 0.08,
+            criticalHitMultiplier: 1.10,
+            injuryFreeRate: 0.1
+        },
+    },
+    {
+        timeLimit: 240,
+        roomNumber: 20,
         playerProperty: {
             health: 50,
             criticalHitRate: 0.08,
