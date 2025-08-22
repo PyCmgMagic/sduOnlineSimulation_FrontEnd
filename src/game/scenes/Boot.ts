@@ -40,7 +40,7 @@ export class Boot extends Scene
             this.displayLogo(); // 加载完成后显示logo
         });
         
-        this.load.on('loaderror', (file: any) => {
+        this.load.on('loaderror', (file: Phaser.Loader.File) => {
             console.error('❌ Failed to load boot asset:', file.key);
         });
     }
@@ -137,8 +137,8 @@ export class Boot extends Scene
             if (typeof Storage === 'undefined') {
                 console.warn('⚠️  LocalStorage not supported');
             }
-        } catch (e) {
-            console.warn('⚠️  LocalStorage not supported');
+        } catch (error) {
+            console.warn('⚠️  LocalStorage not supported',error);
         }
 
         // 检查触摸支持
@@ -186,6 +186,15 @@ export class Boot extends Scene
 
         this.sys.game.events.on('focus', () => {
             console.log('🔊 Game regained focus');
+            // 检查当前活跃场景是否处于暂停状态
+            const activeScene = this.scene.manager.getScenes(true)[0]; // 获取第一个活跃场景
+            if (activeScene) {
+                // 检查场景是否有暂停状态属性
+                const gameState = (activeScene as Scene & { gameState?: { isPaused: boolean } }).gameState;
+                if (gameState && gameState.isPaused) {
+                    return; // 如果游戏处于暂停状态，不恢复音频
+                }
+            }
             this.sys.game.sound.resumeAll();
         });
 
