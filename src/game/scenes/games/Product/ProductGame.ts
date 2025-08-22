@@ -2,7 +2,7 @@ import { GameObjects, Scene, Physics, Time } from "phaser";
 import {CommonFunction} from "../../../../utils/CommonFunction.ts";
 import CursorKeys = Phaser.Types.Input.Keyboard.CursorKeys;
 import { CustomerOrder } from "../../Game.ts";
-import {FRUITS_TYPES, introduction, operation, ProductGameProperties} from "./Types.ts";
+import {FRUITS_TYPES, introduction, operation, ProductGameProperties, GameResult, levelScoreTable} from "./Types.ts";
 
 export class ProductGame extends Scene 
 {
@@ -13,10 +13,15 @@ export class ProductGame extends Scene
     private Key_SPACE: Phaser.Input.Keyboard.Key | undefined ;
     
     /* 游戏基础不可变变量 */
+    private graphics : GameObjects.Graphics;
+    private platforms: MatterJS.BodyType[];
+    private pause_button: GameObjects.Container;
     private player: Physics.Matter.Sprite;
     private time_use: GameObjects.Text // 时间
     private time_use_number: number = 0;
+    private time_remaining: number; // 剩余时间
     private score: number = 0; // 分数
+    private levelScoreTable: number[];
     private scoreText: Phaser.GameObjects.Text;
     private TARGET_LEVEL: number = 7;
     private BAD_FRUIT_LEVEL: number = 8;
@@ -35,11 +40,8 @@ export class ProductGame extends Scene
     private PROBABILITY: number[];
     private BAD_FRUIT_RADIUS: number | null;
     private BAD_FRUIT_KEY: string | null;
-    
-    /* temp components before assets done */
-    graphics : GameObjects.Graphics;
-    platforms: MatterJS.BodyType[];
-    pause_button: GameObjects.Container;
+    private TIME_LIMIT: number;
+    private max_level_index: number;
     
     
     /* 游戏逻辑全局所需变量 */
@@ -58,6 +60,9 @@ export class ProductGame extends Scene
     private bgMusic: Phaser.Sound.NoAudioSound | Phaser.Sound.HTML5AudioSound | Phaser.Sound.WebAudioSound;
     private buttonClickSound: Phaser.Sound.NoAudioSound | Phaser.Sound.HTML5AudioSound | Phaser.Sound.WebAudioSound;
     private mergeSound: Phaser.Sound.NoAudioSound | Phaser.Sound.HTML5AudioSound | Phaser.Sound.WebAudioSound;
+
+    // game result
+    private gameResult: GameResult;
     
     constructor() 
     {
@@ -86,6 +91,7 @@ export class ProductGame extends Scene
         
         // 初始化不可变量
         this.FRUITS_TYPES = FRUITS_TYPES;
+        this.levelScoreTable = levelScoreTable;
         this.PROPERTY = ProductGameProperties[this.currentOrder.difficulty];
         
         // 提取游戏属性
@@ -94,6 +100,9 @@ export class ProductGame extends Scene
         this.PROBABILITY = this.PROPERTY.PROBABILITY;
         this.BAD_FRUIT_RADIUS = this.PROPERTY.BAD_FRUIT_RADIUS;
         this.BAD_FRUIT_KEY = this.PROPERTY.BAD_FRUIT_KEY;
+        this.TIME_LIMIT = this.PROPERTY.TIME_LIMIT;
+        this.max_level_index = 0;
+        this.time_remaining = this.TIME_LIMIT;
     }
 
     preload(): void{
@@ -326,7 +335,15 @@ export class ProductGame extends Scene
     
     private incrementTimer() {
         this.time_use_number++;
-        this.time_use.setText(this.timeFormat(this.time_use_number));
+    }
+
+    private decrementTimer() {
+        this.time_remaining--;
+        this.time_use.setText(this.timeFormat(this.time_remaining));
+
+        if(this.time_remaining <= 0) {
+            this.gameOver();
+        }
     }
     
     private createBoardArea(): void {
@@ -353,7 +370,7 @@ export class ProductGame extends Scene
     
     private createTimerArea() {
         
-        this.add.text(1008, 114, '用时: ', {
+        this.add.text(1008, 114, '时间: ', {
             fontSize: "24px",
             color: '#ffffff',
             align: 'center',
@@ -368,7 +385,7 @@ export class ProductGame extends Scene
 
         this.timerEvent = this.time.addEvent({
             delay: 1000,
-            callback: this.incrementTimer,
+            callback: this.timeChange,
             callbackScope: this,
             loop: true
         });
@@ -379,6 +396,11 @@ export class ProductGame extends Scene
                 this.timerEvent.destroy();
             }
         });
+    }
+
+    private timeChange(): void {
+        this.incrementTimer();
+        this.decrementTimer();
     }
     
     private createIntroArea() {
@@ -431,7 +453,7 @@ export class ProductGame extends Scene
     
     private createLevelArea() {
         
-        this.add.text(1030,165, "游戏难度: ", {
+        this.add.text(1030, 165, "游戏难度: ", {
             fontSize: '24px',
             color: '#ffffff',
             align: 'left',
@@ -670,13 +692,17 @@ export class ProductGame extends Scene
             newFruit.setFriction(0);
             newFruit.setScale( 1.5 );
             this.fruits.push(newFruit);
-            this.updateScoreText(100);
+            // 按合成等级加分
+            const mergeScore = this.levelScoreTable[newLevelNumber] || 0;
+            this.updateScoreText(mergeScore);
             this.mergeSound.play();
 
+            if (newLevelNumber > this.max_level_index) {
+                this.max_level_index = newLevelNumber;
+            }
+
             if (newLevelNumber === this.TARGET_LEVEL) {
-                this.bgMusic.stop();
-                this.scene.pause();
-                this.scene.launch('GameSuccessForProduct', {currentOrder: this.currentOrder, score: this.score, time: this.timeFormat(this.time_use_number)});
+                this.gameOver();
             }
         }
     }
@@ -696,5 +722,20 @@ export class ProductGame extends Scene
             result += ":" + second;
         }
         return result;
+    }
+
+    private gameOver(): void {
+
+        this.gameResult = {
+            score: this.score,
+            time_use: this.time_use_number,
+            max_level_index: this.max_level_index,
+            target_level: this.TARGET_LEVEL,
+            time_remaining: this.time_remaining
+        };
+
+        this.bgMusic.stop();
+        this.scene.pause();
+        this.scene.launch('GameSuccessForProduct', {currentOrder: this.currentOrder, gameResult: this.gameResult});
     }
 }

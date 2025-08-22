@@ -12,6 +12,7 @@ export const operation: string = '🎮游戏操作 '+
 
 // read-only
 export const FRUITS_TYPES: string[] = ['game-product-fruit1', 'game-product-fruit2', 'game-product-fruit3', 'game-product-fruit4', 'game-product-fruit5', 'game-product-fruit6', 'game-product-fruit7', 'game-product-fruit8', 'game-product-bad-fruit'];
+export const levelScoreTable: number[] = [0, 10, 30, 60, 100, 150, 210, 280, 360]; // 下标对应等级
 
 export interface ProductGameProperties {
     DIFFICULTY: number;
@@ -19,6 +20,15 @@ export interface ProductGameProperties {
     PROBABILITY: number[];
     BAD_FRUIT_RADIUS: number | null;
     BAD_FRUIT_KEY: string | null;
+    TIME_LIMIT: number; // second
+}
+
+export interface GameResult {
+    score: number;
+    time_use: number;
+    time_remaining: number;
+    max_level_index: number;
+    target_level: number;
 }
 
 export const ProductGameProperties: ProductGameProperties[] = [
@@ -28,6 +38,7 @@ export const ProductGameProperties: ProductGameProperties[] = [
         PROBABILITY: [0.5, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0],
         BAD_FRUIT_RADIUS: null,
         BAD_FRUIT_KEY: null,    
+        TIME_LIMIT: 300,
     },
     {
         DIFFICULTY: 2,
@@ -35,6 +46,7 @@ export const ProductGameProperties: ProductGameProperties[] = [
         PROBABILITY: [0.5, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0],
         BAD_FRUIT_RADIUS: null,
         BAD_FRUIT_KEY: null,
+        TIME_LIMIT: 300,
     },
     {
         DIFFICULTY: 3,
@@ -42,6 +54,7 @@ export const ProductGameProperties: ProductGameProperties[] = [
         PROBABILITY: [0.5, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0],
         BAD_FRUIT_RADIUS: null,
         BAD_FRUIT_KEY: null,    
+        TIME_LIMIT: 300,
     },
     {
         DIFFICULTY: 4,
@@ -49,6 +62,7 @@ export const ProductGameProperties: ProductGameProperties[] = [
         PROBABILITY: [0.5, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0],
         BAD_FRUIT_RADIUS: null,
         BAD_FRUIT_KEY: null,    
+        TIME_LIMIT: 300,
     },
     {
         DIFFICULTY: 5,
@@ -56,6 +70,7 @@ export const ProductGameProperties: ProductGameProperties[] = [
         PROBABILITY: [0.45, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0.05],
         BAD_FRUIT_RADIUS: 20,
         BAD_FRUIT_KEY: 'game-product-bad-fruit-1',    
+        TIME_LIMIT: 300,
     },
     {
         DIFFICULTY: 6,
@@ -63,6 +78,7 @@ export const ProductGameProperties: ProductGameProperties[] = [
         PROBABILITY: [0.4, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0.1],
         BAD_FRUIT_RADIUS: 28,
         BAD_FRUIT_KEY: 'game-product-bad-fruit-2',    
+        TIME_LIMIT: 300,
     },
     {
         DIFFICULTY: 7,
@@ -70,6 +86,7 @@ export const ProductGameProperties: ProductGameProperties[] = [
         PROBABILITY: [0.35, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0.15],
         BAD_FRUIT_RADIUS: 32,
         BAD_FRUIT_KEY: 'game-product-bad-fruit-3',    
+        TIME_LIMIT: 300,
     },
     {
         DIFFICULTY: 8,
@@ -77,5 +94,6 @@ export const ProductGameProperties: ProductGameProperties[] = [
         PROBABILITY: [0.3, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0.2],
         BAD_FRUIT_RADIUS: 44,
         BAD_FRUIT_KEY: 'game-product-bad-fruit-4',    
+        TIME_LIMIT: 300,
     }
 ]
