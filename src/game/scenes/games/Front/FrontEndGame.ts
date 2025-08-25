@@ -32,6 +32,7 @@ export class FrontEndGame extends Scene {
     private heldPieceGraphics: Phaser.GameObjects.Graphics;
     private gameOverText: Phaser.GameObjects.Text | null = null;
     private pauseImage: Phaser.GameObjects.Image | null = null;
+    private returnButton: Phaser.GameObjects.Image | null = null;
     private pauseMask: Phaser.GameObjects.Graphics | null = null;
     private colorCountTexts: Map<number, Phaser.GameObjects.Text> = new Map();
     private colorProgressBars: Map<number, Phaser.GameObjects.Graphics> = new Map();
@@ -50,7 +51,9 @@ export class FrontEndGame extends Scene {
 
     init(data: { order: CustomerOrder }) {
         this.currentOrder = data.order;
-        this.TOTAL_TIME = (360 -this.currentOrder.difficulty * 60);
+// 调整游戏时间计算以适应1-10难度范围
+        // 难度1: 300秒, 难度10: 200秒
+        this.TOTAL_TIME = Math.max(200, 310 - this.currentOrder.difficulty * 10);
         console.log('FrontEndGame received order:', this.currentOrder);
         this.initializeTargets(this.currentOrder.difficulty); // 在这里初始化目标
     }
@@ -65,6 +68,7 @@ export class FrontEndGame extends Scene {
         this.createControls();
         this.createStopArea()
         this.createHoldButtonArea();
+        this.createReturnButton();
         CommonFunction.createBookInfoButton(this, this.cameras.main.width - 50, 50, '游戏说明', '每种颜色的方块代表一种技术，在规定时间内消除更多的方块吧!最终的分数将根据得分以及技术右侧各技术的统计数量判定噢！Tip:按↓键可以加速下落，获取更多分数噢！', () => this.showGamePop());
         this.createParticleEffects();
         this.spawnNewPiece();
@@ -86,14 +90,15 @@ export class FrontEndGame extends Scene {
         this.gameTargets = {};
         const colors = [...new Set(Object.values(TETROMINOES).map(t => t.color))];
 
-        const baseTarget = Math.max(1, Math.floor(difficulty / 2));
-        const bonusTargets = difficulty;
+        // 难度1总共10个目标，难度2总共11个目标，以此类推
+        const totalTargets =  difficulty;
 
+        // 初始化所有颜色目标为0
         for (const color of colors) {
-            this.gameTargets[color] = baseTarget;
+            this.gameTargets[color] = 1;
         }
-
-        for (let i = 0; i < bonusTargets; i++) {
+        // 随机分配总目标数到各种颜色
+        for (let i = 0; i < totalTargets; i++) {
             const randomColor = colors[Math.floor(Math.random() * colors.length)];
             this.gameTargets[randomColor]++;
         }
@@ -124,9 +129,11 @@ export class FrontEndGame extends Scene {
 
     private initializeGameState(): void {
         const baseInterval = 1150;
-        const speedFactor = 150;
+        // 调整速度因子以适应1-10难度范围
+        // 难度1: 1050ms, 难度10: 250ms
+        const speedFactor = 100;
         const minInterval = 250;
-        const difficulty = Math.max(1, this.currentOrder.difficulty);
+        const difficulty = Math.max(1, Math.min(10, this.currentOrder.difficulty));
         this.initialDropInterval = Math.max(minInterval, baseInterval - (difficulty * speedFactor));
         this.dropInterval = this.initialDropInterval;
 
@@ -323,7 +330,7 @@ private createControls(): void {
     this.restartButton.fillStyle(0x000000, 0);
     const buttonHitArea = new Phaser.Geom.Rectangle(622, 550, 60, 70);
     this.restartButton.fillRoundedRect(
-        buttonHitArea.x,
+        buttonHitArea.x, 
         buttonHitArea.y,
         buttonHitArea.width,
         buttonHitArea.height,
@@ -390,6 +397,40 @@ private createHoldButtonArea(): void {
         this.input.setDefaultCursor('default'); // 鼠标恢复默认
     });
 }
+
+    /**
+     * 创建返回按钮
+     */
+    private createReturnButton(): void {
+        this.returnButton = this.add.image(10, 10, 'return-button');
+        this.returnButton.setOrigin(0).setScale(1.0);
+        this.returnButton.setInteractive();
+        
+        // 创建气泡提示文字
+        const tooltip = this.add.text(this.returnButton.x + 60, this.returnButton.y + 40, '返回', {
+            fontSize: '14px',
+            color: '#ffffff',
+            padding: { x: 8, y: 4 },
+            fontFamily: 'Arial'
+        }).setOrigin(0, 0.5).setVisible(false);
+        
+        // 绑定点击事件
+        this.returnButton.on('pointerdown', () => {
+            this.returnToMainMenu();
+        });
+        
+        this.returnButton.on('pointerover', () => {
+            this.input.setDefaultCursor('pointer'); // 鼠标变成手形
+            tooltip.setVisible(true); // 显示气泡提示
+        });
+        
+        this.returnButton.on('pointerout', () => {
+            this.input.setDefaultCursor('default'); // 鼠标恢复默认
+            tooltip.setVisible(false); // 隐藏气泡提示
+        });
+    }
+
+
     private setupKeyboardControls(): void {
         if (!this.input.keyboard) return;
         this.input.keyboard.on('keydown-LEFT', () => this.movePiece(-1, 0));
@@ -819,6 +860,33 @@ private createHoldButtonArea(): void {
         this.scene.restart({ order: this.currentOrder });
     }
 
+    /**
+     * 返回主菜单
+     */
+    private returnToMainMenu(): void {
+        // 停止所有计时器
+        if (this.dropTimer) {
+            this.dropTimer.remove(false);
+            this.dropTimer = null;
+        }
+        if (this.gameTimer) {
+            this.gameTimer.remove(false);
+            this.gameTimer = null;
+        }
+        
+        // 停止背景音乐
+        if (this.backgroundMusic && this.backgroundMusic.isPlaying) {
+            this.backgroundMusic.stop();
+            this.backgroundMusic = null;
+        }
+        
+        // 清理键盘监听
+        this.input.keyboard?.removeAllListeners();
+        
+        // 返回到游戏入口场景
+        this.scene.start('GameEntrance', { order: this.currentOrder });
+    }
+
     private startGameTimer(): void {
         if (this.gameTimer) {
             this.gameTimer.remove(false);
@@ -847,13 +915,11 @@ private createHoldButtonArea(): void {
     private updateTimeDisplay(): void {
         this.timeText.setText(`⏱️ 剩余: ${this.formatTime(this.gameState.gameTime)}`);
     }
-
     private formatTime(seconds: number): string {
         const min = Math.floor(seconds / 60);
         const sec = seconds % 60;
         return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
     }
-
     /**
      * 播放背景音乐
      */

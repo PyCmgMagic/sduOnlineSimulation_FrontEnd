@@ -11,7 +11,7 @@ export class ProductGame extends Scene
     private Key_D: Phaser.Input.Keyboard.Key | undefined 
     private Key_A: Phaser.Input.Keyboard.Key | undefined 
     private Key_SPACE: Phaser.Input.Keyboard.Key | undefined ;
-    
+    private returnButton: Phaser.GameObjects.Image | null = null;
     /* 游戏基础不可变变量 */
     private graphics : GameObjects.Graphics;
     private platforms: MatterJS.BodyType[];
@@ -104,36 +104,6 @@ export class ProductGame extends Scene
         this.max_level_index = 0;
         this.time_remaining = this.TIME_LIMIT;
     }
-
-    preload(): void{
-        // 加载所有水果图像
-        this.load.image('game-product-fruit1', 'assets/games/product/f-1.png');
-        this.load.image('game-product-fruit2', 'assets/games/product/f-2.png');
-        this.load.image('game-product-fruit3', 'assets/games/product/f-3.png');
-        this.load.image('game-product-fruit4', 'assets/games/product/f-4.png');
-        this.load.image('game-product-fruit5', 'assets/games/product/f-5.png');
-        this.load.image('game-product-fruit6', 'assets/games/product/f-6.png');
-        this.load.image('game-product-fruit7', 'assets/games/product/f-7.png');
-        this.load.image('game-product-fruit8', 'assets/games/product/f-8.png');
-        this.load.image('game-product-bad-fruit-1', 'assets/games/product/bad-fruit-1.png');
-        this.load.image('game-product-bad-fruit-2', 'assets/games/product/bad-fruit-2.png');
-        this.load.image('game-product-bad-fruit-3', 'assets/games/product/bad-fruit-3.png');
-        this.load.image('game-product-bad-fruit-4', 'assets/games/product/bad-fruit-4.png');
-        // 背景
-        this.load.image("game-product-background", "assets/games/product/background.png");
-        // 游戏图
-        this.load.spritesheet("game-product-player", "assets/games/product/player.png", {
-            frameWidth: 200,
-            frameHeight: 300,
-            margin: 0,
-            spacing: 0
-        });
-        // 音乐
-        this.load.audio("game-product-bg-audio", "assets/audio/product/Canon-in-D-product.mp3")
-        this.load.audio("game-product-button-click", "assets/audio/product/button-click.mp3");
-        this.load.audio("game-product-merge", "assets/audio/product/merge.mp3");
-    }
-    
     create(): void
     {
         this.checkAssets();
@@ -152,6 +122,7 @@ export class ProductGame extends Scene
         this.initPause();
         this.initPlayer();
         this.createAnims();
+        this.createReturnButton();
         this.createGameArea();
         this.generateNewFruit();
         this.initNextFruit();
@@ -506,7 +477,44 @@ export class ProductGame extends Scene
             this.pause_button.setVisible(true);
         };
     }
-    
+    private returnToMainMenu() {
+         this.bgMusic.stop();
+        this.scene.pause();
+         // 返回到游戏入口场景
+        this.scene.start('GameEntrance', { order: this.currentOrder });
+    }
+        /**
+     * 创建返回按钮
+     */
+    private createReturnButton(): void {
+        this.returnButton = this.add.image(this.cameras.main.width - 75, 10, 'return-button');
+        this.returnButton.setOrigin(0)
+        this.returnButton.setInteractive();
+        
+        // 创建气泡提示文字
+        const tooltip = this.add.text(this.returnButton.x - 50, this.returnButton.y + 40, '返回', {
+            fontSize: '14px',
+            color: '#000000',
+            padding: { x: 8, y: 4 },
+            fontFamily: 'Arial'
+        }).setOrigin(0, 0.5).setVisible(false);
+        
+        // 绑定点击事件
+        this.returnButton.on('pointerdown', () => {
+            this.returnToMainMenu();
+        });
+        
+        this.returnButton.on('pointerover', () => {
+            this.input.setDefaultCursor('pointer'); // 鼠标变成手形
+            tooltip.setVisible(true); // 显示气泡提示
+        });
+        
+        this.returnButton.on('pointerout', () => {
+            this.input.setDefaultCursor('default'); // 鼠标恢复默认
+            tooltip.setVisible(false); // 隐藏气泡提示
+        });
+    }
+
     private initNextFruit(): void
     {
         if (this.previewFruitImage) this.previewFruitImage.destroy();
@@ -737,5 +745,7 @@ export class ProductGame extends Scene
         this.bgMusic.stop();
         this.scene.pause();
         this.scene.launch('GameSuccessForProduct', {currentOrder: this.currentOrder, gameResult: this.gameResult});
+         // 返回到游戏入口场景
+        this.scene.start('GameEntrance', { order: this.currentOrder });
     }
 }

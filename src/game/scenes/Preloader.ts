@@ -731,6 +731,7 @@ export class Preloader extends Scene
         this.load.image('button-pressed', 'ui/buttons/buttonLong_beige_pressed.png');
         this.load.image('button-star', 'star.png'); // 使用星星作为按钮装饰
         this.load.image('start-button', 'ui/buttons/start-button.png');
+        this.load.image('return-button', 'ui/buttons/return-button-72.png');
         this.load.image('settings', 'ui/buttons/setting.png');
         this.load.image('book', 'ui/icons/book.png');
         
@@ -749,13 +750,7 @@ export class Preloader extends Scene
         
         // 加载UI组件
         this.load.image('pause', 'ui/icons/pause.png');
-        // this.load.image('panel', 'ui/panel.png');
-        // this.load.image('dialog', 'ui/dialog.png');
-        
-        // 加载图标
-        // this.load.image('icon-settings', 'icons/settings.png');
-        // this.load.image('icon-sound', 'icons/sound.png');
-        // this.load.image('icon-music', 'icons/music.png');
+   
     }
 
     /**
@@ -768,15 +763,9 @@ export class Preloader extends Scene
         this.load.image('logo-color', './logo.png');
 
         // 加载游戏内图标
-        this.load.image('icon-settings', './ui/icons/settings.png');
-        this.load.image('icon-pause', './ui/icons/pause.png');
-        this.load.image('icon-play', './ui/icons/play.png');
-        this.load.image('icon-home', './ui/icons/home.png');
-        this.load.image('icon-sound-on', './ui/icons/sound_on.png');
-        this.load.image('icon-sound-off', './ui/icons/sound_off.png');
+
         
         // 加载游戏场景背景
-        this.load.image('game-background', './games/background.jpg');
         
         // 加载精灵/角色
         this.load.spritesheet('player', './games/player.png', {
@@ -784,9 +773,6 @@ export class Preloader extends Scene
             frameHeight: 48
         });
         
-        // 加载地图资源
-        this.load.image('tileset', './games/tileset.png');
-        this.load.tilemapTiledJSON('map', './games/map.json');
 
         // 加载房屋搭建素材
         this.load.setPath('assets/Tiles');
@@ -815,9 +801,35 @@ export class Preloader extends Scene
         this.load.setPath('assets/'); // 恢复资源路径
 
         // 加载产品游戏资源
-        this.load.setPath('assets/games/product');
+        this.load.setPath('assets/games/product/');
         this.load.image('game-product-platform', 'platform.png');
-        this.load.setPath('assets/'); // 恢复资源路径
+                // 加载所有水果图像
+        this.load.image('game-product-fruit1', 'f-1.png');
+        this.load.image('game-product-fruit2', 'f-2.png');
+        this.load.image('game-product-fruit3', 'f-3.png');
+        this.load.image('game-product-fruit4', 'f-4.png');
+        this.load.image('game-product-fruit5', 'f-5.png');
+        this.load.image('game-product-fruit6', 'f-6.png');
+        this.load.image('game-product-fruit7', 'f-7.png');
+        this.load.image('game-product-fruit8', 'f-8.png');
+        this.load.image('game-product-bad-fruit-1', 'bad-fruit-1.png');
+        this.load.image('game-product-bad-fruit-2', 'bad-fruit-2.png');
+        this.load.image('game-product-bad-fruit-3', 'bad-fruit-3.png');
+        this.load.image('game-product-bad-fruit-4', 'bad-fruit-4.png');
+        // 背景
+        this.load.image("game-product-background", "background.png");
+        // 游戏图
+        this.load.spritesheet("game-product-player", "player.png", {
+            frameWidth: 200,
+            frameHeight: 300,
+            margin: 0,
+            spacing: 0
+        });
+        // 音乐
+        this.load.setPath('assets/audio/product/');
+        this.load.audio("game-product-bg-audio", "Canon-in-D-product.mp3")
+        this.load.audio("game-product-button-click", "button-click.mp3");
+        this.load.audio("game-product-merge", "merge.mp3");
         //加载前端游戏资源
         this.load.setPath('assets/games/front-end');
         this.load.image('frontEndBg','frontEndBg2.png')
