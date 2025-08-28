@@ -799,6 +799,10 @@ export class Preloader extends Scene
             frameHeight: 110
         });
         this.load.setPath('assets/'); // 恢复资源路径
+        //加载点单页面素材
+        this.load.setPath('assets/order/')
+        this.load.image('order-bg', '背景.png');
+        this.load.image('bar', '吧台.png');
 
         // 加载产品游戏资源
         this.load.setPath('assets/games/product/');

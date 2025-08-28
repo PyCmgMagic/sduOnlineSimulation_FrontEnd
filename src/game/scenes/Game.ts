@@ -148,31 +148,39 @@ export class Game extends Scene
         ];
     }
     
+    /**
+     * 创建游戏世界背景和角色
+     * 使用order-bg作为背景图片，并添加玩家角色
+     */
     private createWorld(): void {
         const centerX = this.cameras.main.width / 2;
-        const cafeScale = 4;
-        const wall = this.add.image(centerX, 0, 'houseBeige');
-        wall.setOrigin(0.5, 0);
-        const wallImage = this.textures.get('houseBeige');
-        const scaleX = this.cameras.main.width / wallImage.source[0].width;
-        wall.setScale(scaleX, cafeScale * 1.35).setDepth(1);
+        const centerY = this.cameras.main.height / 2;
+        
+        // 添加order-bg背景图片
+        const background = this.add.image(centerX, centerY, 'order-bg');
+        background.setOrigin(0.5, 0.5);
+        
+        // 获取背景图片尺寸并计算缩放比例以适配屏幕
+        const bgTexture = this.textures.get('order-bg');
+        const scaleX = this.cameras.main.width / bgTexture.source[0].width;
+        const scaleY = this.cameras.main.height / bgTexture.source[0].height;
+        const scale = Math.max(scaleX, scaleY); // 使用较大的缩放比例确保完全覆盖
+        
+        background.setScale(scale).setDepth(0);
 
-        const wall2Y = wall.y + wall.displayHeight;
-        const wall2 = this.add.image(centerX, wall2Y, 'houseDark');
-        wall2.setOrigin(0.5, 0);
-        const wallImage2 = this.textures.get('houseDark');
-        const scaleX2 = this.cameras.main.width / wallImage2.source[0].width;
-        wall2.setScale(scaleX2, cafeScale * 0.45).setDepth(1);
-
-        const wall3Y = wall2.y + wall2.displayHeight;
-        const wall3 = this.add.image(centerX, wall3Y, 'houseGray');
-        wall3.setOrigin(0.5, 0);
-        const wallImage3 = this.textures.get('houseGray');
-        const scaleX3 = this.cameras.main.width / wallImage3.source[0].width;
-        wall3.setScale(scaleX3, cafeScale * 1.3).setDepth(3);
-
+        // 添加玩家角色
         const playerCustomer = this.add.sprite(600, 400, 'player-customer', 0);
         playerCustomer.setScale(4).setFlipX(true).setDepth(2);
+        
+        // 添加bar元素到屏幕下方
+        const barY = this.cameras.main.height - 120; 
+        const bar = this.add.image(centerX, barY, 'bar');
+        bar.setOrigin(0.5, 0.5);
+        
+        // 计算bar的缩放比例以适配屏幕宽度
+        const barTexture = this.textures.get('bar');
+        const barScaleX = this.cameras.main.width / barTexture.source[0].width;
+        bar.setScale(barScaleX, 1).setDepth(1);
     }
     
     private createGameUI(): void {

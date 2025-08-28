@@ -879,10 +879,8 @@ private createHoldButtonArea(): void {
             this.backgroundMusic.stop();
             this.backgroundMusic = null;
         }
-        
         // 清理键盘监听
         this.input.keyboard?.removeAllListeners();
-        
         // 返回到游戏入口场景
         this.scene.start('GameEntrance', { order: this.currentOrder });
     }
