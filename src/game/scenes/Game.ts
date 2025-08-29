@@ -52,9 +52,9 @@ export class Game extends Scene
     private readonly MAX_CUSTOMERS: number = 2;
     private readonly CUSTOMER_SPAWN_DELAY: number = 4000; // ms
     private readonly DAY_DURATION: number = 5000; // ms
-    private readonly CUSTOMER_QUEUE_START_X: number = 200;
+    private readonly CUSTOMER_QUEUE_START_X: number = 700;
     private readonly CUSTOMER_QUEUE_SPACING: number = 220;
-    private readonly CUSTOMER_Y_POSITION: number = 550;
+    private readonly CUSTOMER_Y_POSITION: number = 440;
     
     // Scene Objects
     private camera: Phaser.Cameras.Scene2D.Camera;
@@ -169,8 +169,8 @@ export class Game extends Scene
         background.setScale(scale).setDepth(0);
 
         // 添加玩家角色
-        const playerCustomer = this.add.sprite(600, 400, 'player-customer', 0);
-        playerCustomer.setScale(4).setFlipX(true).setDepth(2);
+        const playerCustomer = this.add.image(440, 550, 'ShopStaff');
+        playerCustomer.setScale(0.6).setDepth(11);
         
         // 添加bar元素到屏幕下方
         const barY = this.cameras.main.height - 120; 
@@ -180,7 +180,7 @@ export class Game extends Scene
         // 计算bar的缩放比例以适配屏幕宽度
         const barTexture = this.textures.get('bar');
         const barScaleX = this.cameras.main.width / barTexture.source[0].width;
-        bar.setScale(barScaleX, 1).setDepth(1);
+        bar.setScale(barScaleX, 1).setDepth(10);
     }
     
     private createGameUI(): void {
@@ -213,20 +213,34 @@ export class Game extends Scene
     }
 
     private createAnimations(): void {
-        const anims = [
-            { key: 'female-walk-down', start: 0, end: 8 },
-            { key: 'female-walk-left', start: 9, end: 17 },
-            { key: 'female-walk-right', start: 18, end: 23 },
+        // 为customer1创建简单的动画（使用不同帧）
+        const customer1Anims = [
+            { key: 'customer1-idle', start: 4, end: 4 },
+            { key: 'customer1-walk-right', start: 0, end: 4 },
+            { key: 'customer1-walk-left', start: 0, end: 3 },
+            { key: 'customer1-happy', start: 4, end: 4 }
+        ];
+
+        customer1Anims.forEach(anim => {
+            this.anims.create({
+                key: anim.key,
+                frames: this.anims.generateFrameNumbers('customer1', { start: anim.start, end: anim.end }),
+                frameRate: 3,
+                repeat: -1
+            });
+        });
+
+        // 保留玩家动画
+        const playerAnims = [
             { key: 'player-walk-down', start: 0, end: 8 },
             { key: 'player-walk-left', start: 9, end: 17 },
             { key: 'player-walk-right', start: 18, end: 23 }
         ];
 
-        anims.forEach(anim => {
-            const texture = anim.key.includes('female') ? 'female-customer' : 'player-customer';
+        playerAnims.forEach(anim => {
             this.anims.create({
                 key: anim.key,
-                frames: this.anims.generateFrameNumbers(texture, { start: anim.start, end: anim.end }),
+                frames: this.anims.generateFrameNumbers('player-customer', { start: anim.start, end: anim.end }),
                 frameRate: 6,
                 repeat: -1
             });
@@ -300,18 +314,18 @@ export class Game extends Scene
     private spawnCustomer(): void {
         if (this.customers.length >= this.MAX_CUSTOMERS) return;
 
-        // The queue is packed from right to left.
-        // The newest customer goes to the leftmost available spot.
+        // 新顾客排在队列的最右侧（最后面）
         const newCustomerIndex = this.customers.length;
-        const newQueuePosition = (this.MAX_CUSTOMERS - 1) - newCustomerIndex;
+        const newQueuePosition = newCustomerIndex; // 直接使用索引作为队列位置
 
         const customerName = this.customerNames[Math.floor(Math.random() * this.customerNames.length)];
         const customerId = `customer_${this.customerCounter++}`;
         const targetX = this.CUSTOMER_QUEUE_START_X + newQueuePosition * this.CUSTOMER_QUEUE_SPACING;
-        const startX = -100;
+        const startX = this.cameras.main.width + 100; // 从屏幕右侧开始
 
-        const customerSprite = this.add.sprite(startX, this.CUSTOMER_Y_POSITION, 'female-customer', 0);
-        customerSprite.setScale(4.5).setDepth(110);
+        const customerSprite = this.add.sprite(startX, this.CUSTOMER_Y_POSITION, 'customer1', 0);
+        // 由于customer1的尺寸是1080x1920，需要大幅缩小
+        customerSprite.setScale(0.22).setDepth(8);
         
         const order = this.generateRandomOrder(customerId, customerName);
         
@@ -332,19 +346,23 @@ export class Game extends Scene
         CommonFunction.showToast(this, `新需求来自: ${customerName}`, 1500, 'info');
         this.updateOrdersDisplay();
         
-        customerSprite.play('female-walk-right');
+        customerSprite.play('customer1-walk-left');
         this.tweens.add({
             targets: customerSprite,
             x: targetX,
-            duration: 2500,
+            duration: 5000,
             ease: 'Linear',
             onComplete: () => {
                 customerSprite.stop();
-                customerSprite.setFrame(0);
+                customerSprite.play('customer1-idle');
             }
         });
     }
 
+    /**
+     * 移除顾客并播放向左离开的动画
+     * @param customerId 要移除的顾客ID
+     */
     private removeCustomer(customerId: string): void {
         const customerIndex = this.customers.findIndex(c => c.id === customerId);
         if (customerIndex > -1) {
@@ -354,10 +372,12 @@ export class Game extends Scene
                 const sprite = customer.sprite;
                 this.tweens.add({
                     targets: sprite,
-                    x: this.cameras.main.width + 200,
-                    duration: 1500,
+                    x: -200, // 向左移动到屏幕外
+                    duration: 5000,
                     ease: 'Power2',
-                    onStart: () => sprite.play('female-walk-right'),
+                    onStart: () => {
+                        sprite.play('customer1-walk-left'); // 播放向左走的动画
+                    },
                     onComplete: () => {
                         sprite.destroy();
                         this.customers.splice(customerIndex, 1);
@@ -373,7 +393,7 @@ export class Game extends Scene
 
     private rearrangeCustomers(): void {
         this.customers.forEach((customer, index) => {
-            const newQueuePosition = (this.MAX_CUSTOMERS - 1) - index;
+            const newQueuePosition = index; // 直接使用数组索引作为队列位置
             
             if (customer.queuePosition !== newQueuePosition) {
                 customer.queuePosition = newQueuePosition;
@@ -393,8 +413,10 @@ export class Game extends Scene
         this.customers.forEach(customer => {
             if (customer.isActive) {
                 const queueX = this.CUSTOMER_QUEUE_START_X + customer.queuePosition * this.CUSTOMER_QUEUE_SPACING;
-                const sprite = this.add.sprite(queueX, this.CUSTOMER_Y_POSITION, 'female-customer', 0);
-                sprite.setScale(4.5).setDepth(110);
+                const sprite = this.add.sprite(queueX, this.CUSTOMER_Y_POSITION, 'customer1', 0);
+                // 由于customer1的尺寸是1080x1920，需要大幅缩小
+                sprite.setScale(0.22).setDepth(8);
+                sprite.play('customer1-idle');
                 customer.sprite = sprite;
             }
         });

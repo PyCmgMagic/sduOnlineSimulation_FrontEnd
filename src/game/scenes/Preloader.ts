@@ -798,6 +798,11 @@ export class Preloader extends Scene
             frameWidth: 80,
             frameHeight: 110
         });
+        this.load.spritesheet('customer1', 'customer1.png', {
+        frameWidth: 1080,
+        frameHeight: 1920
+    });
+        this.load.image('ShopStaff', 'ShopStaff.png');
         this.load.setPath('assets/'); // 恢复资源路径
         //加载点单页面素材
         this.load.setPath('assets/order/')
