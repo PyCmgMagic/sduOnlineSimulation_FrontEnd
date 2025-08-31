@@ -22,6 +22,7 @@ export class BackEndGame extends Scene {
     private shadowLayer: TilemapLayer
     private tilemapVisibility: TilemapVisibility
     private dungeon: Dungeon;
+    private playerEnemyColliders: Phaser.Physics.Arcade.Collider[] = [];
 
 
     private score: number = 0;
@@ -75,12 +76,12 @@ export class BackEndGame extends Scene {
         this.load.image("tiles", 'assets/games/back-end/tiles.png');
         this.load.spritesheet(
             "game-back-end-player",
-            "assets/games/back-end/player.png",
+            "assets/games/back-end/new-player.png",
             {
-                frameWidth: 64,
-                frameHeight: 64,
-                margin: 1,
-                spacing: 2
+                frameWidth: 60,
+                frameHeight: 77,
+                margin: 0,
+                spacing: 0
             }
         );
         this.load.spritesheet("game-back-end-enemy-static", "assets/games/back-end/slime-static.png", {
@@ -135,6 +136,16 @@ export class BackEndGame extends Scene {
     update(time: number, delta: number) {
         if (this.player.sprite.body) {
             this.player.update(time, delta);
+            if (this.player.getIsInvincible()) {
+                this.playerEnemyColliders.forEach(collider => this.physics.world.removeCollider(collider));
+                this.playerEnemyColliders = [];
+            } else if (!this.player.getIsInvincible() && this.playerEnemyColliders.length === 0) {
+                this.enemies.forEach(enemy => {
+                    if (!enemy.sprite.body) return;
+                    const collider = this.physics.add.collider(this.player.sprite, enemy.sprite, this.handlePlayerEnemyCollider, undefined, this);
+                    this.playerEnemyColliders.push(collider);
+                })
+            }
 
             const playerTileX = this.groundLayer.worldToTileX(this.player.sprite.x);
             const playerTileY = this.groundLayer.worldToTileY(this.player.sprite.y);
@@ -195,7 +206,7 @@ export class BackEndGame extends Scene {
             height: 100,
             rooms: {
                 width: {
-                    min: 7,
+                    min: 9,
                     max: 15,
                     onlyOdd: true,
                 },
@@ -353,7 +364,8 @@ export class BackEndGame extends Scene {
             this.enemies.push(enemy);
             this.physics.add.collider(enemy.sprite, this.groundLayer);
             this.physics.add.collider(enemy.sprite, this.stuffLayer);
-            this.physics.add.collider(this.player.sprite, enemy.sprite, this.handlePlayerEnemyCollider, undefined, this);
+            const collider = this.physics.add.collider(this.player.sprite, enemy.sprite, this.handlePlayerEnemyCollider, undefined, this);
+            this.playerEnemyColliders.push(collider);
         })
 
         const camera = this.cameras.main;
@@ -362,6 +374,8 @@ export class BackEndGame extends Scene {
     }
 
     handlePlayerEnemyCollider(player: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody, enemy: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody) {
+        // 如果玩家处于无敌/闪动状态则不处理碰撞伤害
+        if ((this.player as any).isInvincible || (this.player as any).invincible) return;
         const realEnemy: Enemy = enemy.getData("owner") as Enemy;
         this.player.healthDecrease(realEnemy.getDamage());
     }
@@ -603,7 +617,7 @@ class Player {
         if (!anims.exists("player-walk")) {
             anims.create({
                 key: "player-walk",
-                frames: anims.generateFrameNumbers("game-back-end-player", { start: 46, end: 49 }),
+                frames: anims.generateFrameNumbers("game-back-end-player", { start: 0, end: 3 }),
                 frameRate: 8,
                 repeat: -1,
             });
@@ -611,7 +625,7 @@ class Player {
         if (!anims.exists("player-walk-back")) {
             anims.create({
                 key: "player-walk-back",
-                frames: anims.generateFrameNumbers("game-back-end-player", { start: 65, end: 68 }),
+                frames: anims.generateFrameNumbers("game-back-end-player", { start: 4, end: 7 }),
                 frameRate: 8,
                 repeat: -1
             });
@@ -665,8 +679,8 @@ class Player {
             sprite.anims.play("player-walk-back", true);
         } else {
             sprite.anims.stop();
-            if (prevVelocity.y < 0) sprite.setTexture("game-back-end-player", 65);
-            else sprite.setTexture("game-back-end-player", 46);
+            if (prevVelocity.y < 0) sprite.setTexture("game-back-end-player", 4);
+            else sprite.setTexture("game-back-end-player", 0);
         }
 
         if (keys.up.isDown && this.attackCoolDown <= 0) {
@@ -776,12 +790,16 @@ class Player {
     }
 
     getDamage(): number {
-        let realDamage = CommonFunction.getNumberInNormalDistribution(this.damage, 50);
+        let realDamage = CommonFunction.getNumberInNormalDistribution(this.damage, 10);
         if (CommonFunction.simulateEvent(this.criticalHitRate)) {
             realDamage *= this.criticalHitMultiplier
         }
         if (realDamage < this.minDamage) realDamage = this.minDamage;
         return Math.floor(realDamage);
+    }
+
+    getIsInvincible(): boolean {
+        return this.isInvincible;
     }
 
 }
