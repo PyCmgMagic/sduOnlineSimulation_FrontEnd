@@ -344,7 +344,6 @@ export class Game extends Scene
         this.customerOrders.push(order);
         
         CommonFunction.showToast(this, `新需求来自: ${customerName}`, 1500, 'info');
-        this.updateOrdersDisplay();
         
         customerSprite.play('customer1-walk-left');
         this.tweens.add({
@@ -355,6 +354,8 @@ export class Game extends Scene
             onComplete: () => {
                 customerSprite.stop();
                 customerSprite.play('customer1-idle');
+                // 动画播放完成后只显示该顾客的订单内容
+                this.addSingleOrderDisplay(order);
             }
         });
     }
@@ -367,7 +368,6 @@ export class Game extends Scene
         const customerIndex = this.customers.findIndex(c => c.id === customerId);
         if (customerIndex > -1) {
             const customer = this.customers[customerIndex];
-            
             if (customer.sprite) {
                 const sprite = customer.sprite;
                 this.tweens.add({
@@ -464,6 +464,27 @@ export class Game extends Scene
         };
     }
 // --- UI & DATA UPDATES ---
+
+/**
+ * 添加单个订单显示
+ * @param order 要显示的订单
+ */
+private addSingleOrderDisplay(order: CustomerOrder): void {
+    // 筛选出所有状态为 'waiting' 或 'preparing' 的活动订单
+    const ordersToDisplay = this.customerOrders.filter(
+        o => o.status === 'waiting' || o.status === 'preparing'
+    );
+    
+    // 找到当前订单在显示列表中的索引
+    const orderIndex = ordersToDisplay.findIndex(o => o.id === order.id);
+    if (orderIndex === -1) return;
+    
+    const cardHeight = 250;
+    const spacing = 20;
+    const orderY = -30 + (cardHeight / 2) + (orderIndex * (cardHeight + spacing));
+    
+    this.createOrderDisplay(order, orderY);
+}
 
 private updateOrdersDisplay(): void {
     // 首先，移除所有旧的订单卡片UI

@@ -1,5 +1,4 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, CancelTokenSource } from 'axios';
-import configRaw from '../../.requestconfig?raw';
 
 // 扩展AxiosRequestConfig接口以支持metadata
 declare module 'axios' {
@@ -44,16 +43,22 @@ class Request {
     private cache: Map<string, CacheItem> = new Map(); // 请求缓存
     private requestQueue: Set<string> = new Set(); // 请求队列，防止重复请求
     
-    // 私有构造函数，遵循单例模式
+    /**
+     * 私有构造函数，遵循单例模式
+     */
     private constructor() {
         let baseUrl = 'http://localhost:3000/api'; // 默认地址
         try {
-            const match = configRaw.match(/^BASE_URL=(.*)$/m);
-            if (match && match[1]) {
-                baseUrl = match[1].trim();
+            // 从.env文件中读取VITE_BASE_URL环境变量
+            const envBaseUrl = import.meta.env.VITE_BASE_URL;
+            if (envBaseUrl) {
+                baseUrl = envBaseUrl.trim();
+                console.log('从环境变量加载API基础URL:', baseUrl);
+            } else {
+                console.warn('未找到VITE_BASE_URL环境变量，使用默认地址');
             }
         } catch (e) {
-            console.error("解析 .requestconfig 文件失败，使用默认地址。错误:", e);
+            console.error("解析环境变量失败，使用默认地址。错误:", e);
         }
 
         this.axiosInstance = axios.create({

@@ -168,12 +168,24 @@ export class GameEntrance extends Scene{
         const sceneKeys: string[] = ['ProductGame', 'VisionGame', 'FrontEndGame', "FrontEndGame", 'BackEndGame']
         const ids: string[] = ['product_design', 'visual_design', 'frontend_dev', 'frontend_dev', 'backend_dev'];
         
-        for(let i = 0; i < screenX; i++) {
+        for(let i = 0; i < imageKeys.length; i++) {
             const image = this.add.image(screenX + 20 + i * 60, screenY - 20, imageKeys[i]);
             image.setScale(50 / image.width);
             image.setInteractive();
+            
+            // 为不同的图标添加特殊处理逻辑
             image.on('pointerdown', () => {
-                this.scene.start(sceneKeys[i], {order: this.currentOrder});
+                if (imageKeys[i] === 'game-entrance-vsc') {
+                    // 显示当前前端技术栈
+                    this.showTechStackInfo();
+                } else if (imageKeys[i] === 'game-entrance-studio') {
+                    // 切换到移动端技术栈并进入游戏
+                    this.switchToMobileTechStack();
+                    this.scene.start(sceneKeys[i], {order: this.currentOrder});
+                } else {
+                    // 其他图标正常进入游戏
+                    this.scene.start(sceneKeys[i], {order: this.currentOrder});
+                }
                 image.setScale(45 / image.width);
             })
             
@@ -193,7 +205,103 @@ export class GameEntrance extends Scene{
             }
         }
         
-        // const xd = this.add.image(screenX + 20, screenY - 20, 'game-entrance-xd');
-        // xd.setScale(50 / xd.width);
+    }
+    
+    /**
+     * 显示当前前端技术栈信息
+     */
+    private showTechStackInfo(): void {
+        const techStackInfo = [
+            'HTML - 网页结构标记语言',
+            'CSS - 样式表语言',
+            'JS - JavaScript编程语言',
+            'Vue - 渐进式前端框架',
+            '性能优化 - 提升应用性能',
+            'React - 用户界面库',
+            '页面美化 - 界面设计优化',
+            '增强 - 功能增强'
+        ];
+        
+        const infoText = techStackInfo.join('\n');
+        
+        // 创建弹窗背景
+        const popupBg = this.add.graphics();
+        popupBg.fillStyle(0x000000, 0.8);
+        popupBg.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
+        
+        // 创建信息面板
+        const panelWidth = 600;
+        const panelHeight = 400;
+        const panelX = (this.cameras.main.width - panelWidth) / 2;
+        const panelY = (this.cameras.main.height - panelHeight) / 2;
+        
+        const panel = this.add.graphics();
+        panel.fillStyle(0xffffff, 0.95);
+        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 10);
+        panel.lineStyle(3, 0x333333, 1);
+        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 10);
+        
+        // 添加标题
+        const title = this.add.text(panelX + panelWidth / 2, panelY + 40, '前端开发技术栈', {
+            fontSize: '28px',
+            color: '#333333',
+            fontFamily: '"Comic Sans MS", cursive'
+        }).setOrigin(0.5);
+        
+        // 添加技术栈信息
+        const content = this.add.text(panelX + 50, panelY + 100, infoText, {
+            fontSize: '18px',
+            color: '#444444',
+            fontFamily: 'Arial, sans-serif',
+            lineSpacing: 10
+        });
+        
+        // 添加关闭按钮
+        const closeButton = this.add.text(panelX + panelWidth / 2, panelY + panelHeight - 50, '关闭', {
+            fontSize: '20px',
+            color: '#ffffff',
+            backgroundColor: '#007bff',
+            padding: { x: 20, y: 10 }
+        }).setOrigin(0.5).setInteractive();
+        
+        closeButton.on('pointerdown', () => {
+            popupBg.destroy();
+            panel.destroy();
+            title.destroy();
+            content.destroy();
+            closeButton.destroy();
+        });
+        
+        closeButton.on('pointerover', () => {
+            closeButton.setStyle({ backgroundColor: '#0056b3' });
+        });
+        
+        closeButton.on('pointerout', () => {
+            closeButton.setStyle({ backgroundColor: '#007bff' });
+        });
+    }
+    
+    /**
+     * 切换到移动端技术栈
+     */
+    private switchToMobileTechStack(): void {
+        // 这里我们需要修改FrontEndGame.ts中的getTextToShow方法
+        // 由于无法直接修改其他文件的方法，我们通过全局变量或事件系统来实现
+        (window as any).useMobileTechStack = true;
+        
+        console.log('已切换到移动端技术栈模式');
+        
+        // 显示切换提示
+        const notification = this.add.text(this.cameras.main.centerX, 100, '已切换到移动端开发技术栈！', {
+            fontSize: '24px',
+            color: '#00ff00',
+            backgroundColor: '#000000',
+            padding: { x: 20, y: 10 }
+        }).setOrigin(0.5);
+        
+        // 2秒后移除提示
+        this.time.delayedCall(2000, () => {
+            notification.destroy();
+        });
     }
 }

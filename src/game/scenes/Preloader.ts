@@ -762,9 +762,10 @@ export class Preloader extends Scene
         this.load.image('logo-white', './pure-logo.png');
         this.load.image('logo-color', './logo.png');
 
-        // 加载游戏内图标
-
-        
+        // 加载排行榜素材
+        this.load.setPath('assets/rank/');
+        this.load.image('rank_bg', 'rank_bg.png');
+        this.load.image('rank_icon','rank_icon.png')
         // 加载游戏场景背景
         
         // 加载精灵/角色
@@ -1237,17 +1238,17 @@ export class Preloader extends Scene
     }
 
     /**
-     * 启动主菜单
+     * 启动登录场景
      */
     private startMainMenu(): void
     {
-        console.log('🎮 Starting main menu...');
+        console.log('🔐 Starting login scene...');
         
         // 添加场景切换效果
         this.cameras.main.fadeOut(500, 0, 0, 0);
         
         this.cameras.main.once('camerafadeoutcomplete', () => {
-        this.scene.start('MainMenu');
+        this.scene.start('Login');
         });
     }
     

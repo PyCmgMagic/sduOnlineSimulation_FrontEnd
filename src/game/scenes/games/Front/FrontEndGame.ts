@@ -179,16 +179,40 @@ export class FrontEndGame extends Scene {
         });
     }
 
+    /**
+     * 根据颜色获取对应的技术栈文本
+     * 支持前端开发和移动端开发两种模式
+     * @param color 方块颜色值
+     * @returns 对应的技术栈名称
+     */
     private getTextToShow(color: number): string {
-        switch(color) {
-            case 0xFFB366: return 'HTML';
-            case 0xFFD93D: return 'CSS';
-            case 0xFF6B9D: return 'JS';
-            case 0x90EE90: return 'Vue';
-            case 0xFF7F7F: return '性能优化';
-            case 0x87CEEB: return 'React';
-            case 0xDDA0DD: return '页面美化';
-            default: return '增强';
+        // 检查是否使用移动端技术栈
+        const useMobileTechStack = (window as any).useMobileTechStack || false;
+        
+        if (useMobileTechStack) {
+            // 移动端开发技术栈
+            switch(color) {
+                case 0xFFB366: return 'Java';
+                case 0xFFD93D: return 'Kotlin';
+                case 0xFF6B9D: return 'Dart';
+                case 0x90EE90: return 'Flutter';
+                case 0xFF7F7F: return '性能优化';
+                case 0x87CEEB: return 'Swift';
+                case 0xDDA0DD: return '页面美化';
+                default: return '增强';
+            }
+        } else {
+            // 前端开发技术栈（默认）
+            switch(color) {
+                case 0xFFB366: return 'HTML';
+                case 0xFFD93D: return 'CSS';
+                case 0xFF6B9D: return 'JS';
+                case 0x90EE90: return 'Vue';
+                case 0xFF7F7F: return '性能优化';
+                case 0x87CEEB: return 'React';
+                case 0xDDA0DD: return '页面美化';
+                default: return '增强';
+            }
         }
     }
 
