@@ -1231,25 +1231,41 @@ export class Preloader extends Scene
             this.startMobileError();
         } else {
             // 自动跳转（3秒后）
-            this.time.delayedCall(3000, () => {
+            const delay = this.isLoggedIn() ? 300 : 3000;
+            this.time.delayedCall(delay, () => {
                 this.startMainMenu();
             });
         }
     }
 
     /**
-     * 启动登录场景
+     * 根据登录状态启动下一场景（已登录→MainMenu，未登录→Login）
      */
     private startMainMenu(): void
     {
-        console.log('🔐 Starting login scene...');
-        
+        const loggedIn = this.isLoggedIn();
+        console.log(loggedIn ? '🔐 Authenticated: go MainMenu' : '🔐 Not authenticated: go Login');
+
         // 添加场景切换效果
         this.cameras.main.fadeOut(500, 0, 0, 0);
         
         this.cameras.main.once('camerafadeoutcomplete', () => {
-        this.scene.start('Login');
+            this.scene.start(loggedIn ? 'MainMenu' : 'Login');
         });
+    }
+
+    /**
+     * 本地检查是否已登录（与Boot保持一致）
+     */
+    private isLoggedIn(): boolean {
+        try {
+            const authToken = localStorage.getItem('authToken');
+            const userId = localStorage.getItem('userId');
+            const userInfo = localStorage.getItem('userInfo');
+            return !!((authToken || userId) && userInfo);
+        } catch (e) {
+            return false;
+        }
     }
     
     private startMobileError(): void 

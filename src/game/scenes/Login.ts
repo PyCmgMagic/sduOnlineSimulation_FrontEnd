@@ -454,16 +454,14 @@ export class Login extends Scene {
         // 显示跳转提示
         this.showMessage('正在跳转到第三方登录...', 'info');
         
-        // 获取环境变量中的基础URL，拼接/api/me路径
-        const baseUrl = import.meta.env.VITE_BASE_URL || 'http://localhost:3000';
-        const loginUrl = `${baseUrl}/api/me`;
+        // 获取环境变量中的基础URL，拼接/api/login路径
+        const baseUrl = import.meta.env.VITE_BASE_URL || 'http://localhost:8085';
+        const loginUrl = `${baseUrl}/api/login?redirect=${encodeURIComponent(window.location.origin + window.location.pathname)}`;
         console.log('🔗 Redirecting to:', loginUrl);
         
         // 在新窗口中打开第三方登录页面
-        const loginWindow = window.open(loginUrl, '_blank', 'width=600,height=700,scrollbars=yes,resizable=yes');
+        window.location.href = loginUrl;
         
-        // 监听第三方登录窗口
-        this.monitorThirdPartyLogin(loginWindow);
     }
 
     /**

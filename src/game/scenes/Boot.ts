@@ -5,6 +5,7 @@ export class Boot extends Scene
 {
     private gameVersion: string = '1.0.0';
     private debugMode: boolean = false;
+    private loggedInOnBoot: boolean = false; // 回调回来时用于跳过启动动画
 
     constructor ()
     {
@@ -14,7 +15,10 @@ export class Boot extends Scene
     init ()
     {
         console.log('🚀 Boot scene starting...');
-        
+
+        // 检查是否需要跳过启动动画（来自登录回调页面）
+        this.checkSkipBootAnimation();
+
         // 系统检查和全局配置
         this.checkSystemCapabilities();
         this.initializeGameSettings();
@@ -23,8 +27,13 @@ export class Boot extends Scene
 
     preload ()
     {
-        // 创建简单的启动界面
-        this.createSimpleBootUI();
+        // 提前判断是否已登录（回调回来），用于跳过动画
+        this.loggedInOnBoot = this.checkLoginStatus();
+
+        // 仅在未登录时显示简单的启动界面
+        if (!this.loggedInOnBoot) {
+            this.createSimpleBootUI();
+        }
         
         // 设置资源路径
         this.load.setPath('assets/');
@@ -37,7 +46,9 @@ export class Boot extends Scene
         
         this.load.on('complete', () => {
             console.log('✅ Boot assets loaded');
-            this.displayLogo(); // 加载完成后显示logo
+            if (!this.loggedInOnBoot) {
+                this.displayLogo(); // 加载完成后显示logo
+            }
         });
         
         this.load.on('loaderror', (file: Phaser.Loader.File) => {
@@ -58,10 +69,17 @@ export class Boot extends Scene
         // 初始化音频系统
         this.initializeAudio();
         
-        // 短暂延迟后启动Preloader场景
-        this.time.delayedCall(2400, () => {
-            this.startPreloader();
-        });
+        // 检查登录状态，决定是否跳过动画
+        if (this.loggedInOnBoot || this.checkLoginStatus()) {
+            console.log('🔐 User already logged in, skipping boot animation');
+            // 回调回来：直接进入资源加载（Preloader），由Preloader决定进入MainMenu
+            this.startPreloader(true);
+        } else {
+            // 短暂延迟后启动Preloader场景
+            this.time.delayedCall(2400, () => {
+                this.startPreloader();
+            });
+        }
     }
 
     /**
@@ -282,15 +300,104 @@ export class Boot extends Scene
     /**
      * 启动Preloader场景
      */
-    private startPreloader(): void
+    private startPreloader(immediate: boolean = false): void
     {
         console.log('🎬 Starting Preloader scene...');
         
         // 添加简单的场景切换效果
+        if (immediate) {
+            // 已登录回调回来，尽快进入Preloader
+            this.scene.start('Preloader');
+        } else {
+            this.cameras.main.fadeOut(300, 0, 0, 0);
+            
+            this.cameras.main.once('camerafadeoutcomplete', () => {
+                this.scene.start('Preloader');
+            });
+        }
+    }
+
+    /**
+     * 检查是否需要跳过启动动画（来自登录回调页面）
+     */
+    private checkSkipBootAnimation(): void
+    {
+        try {
+            console.log('🔍 Checking skip boot animation flags...');
+
+            // 检查全局跳过动画标记（由LoginCallback页面设置）
+            const skipBootAnimation = localStorage.getItem('skipBootAnimation') === 'true' ||
+                                    (window as any).skipBootAnimation === true;
+            console.log('🔍 Skip boot animation flag:', skipBootAnimation);
+
+            // 检查是否有最近的登录时间戳
+            const lastLoginTime = localStorage.getItem('lastLoginTime');
+            const recentLogin = lastLoginTime && (Date.now() - parseInt(lastLoginTime)) < 10000; // 10秒内
+            console.log('🔍 Recent login (within 10s):', recentLogin);
+
+            // 检查是否有完整的登录数据（仅使用localStorage，不进行网络请求）
+            const hasCompleteLoginData = this.checkLoginStatus();
+            console.log('🔍 Has complete login data:', hasCompleteLoginData);
+
+            // 如果有跳过动画标记且有完整登录数据，则跳过启动动画
+            if (skipBootAnimation && hasCompleteLoginData) {
+                console.log('🚀 Skip boot animation flag detected with login data!');
+                this.loggedInOnBoot = true;
+
+                // 清理跳过动画标记
+                localStorage.removeItem('skipBootAnimation');
+                (window as any).skipBootAnimation = false;
+            } else if (recentLogin && hasCompleteLoginData) {
+                console.log('🚀 Recent login detected with complete data!');
+                this.loggedInOnBoot = true;
+            }
+
+            console.log('✅ Skip boot animation check completed, no API calls made');
+        } catch (error) {
+            console.warn('⚠️ Failed to check skip boot animation:', error);
+        }
+    }
+
+    /**
+     * 检查用户是否已经登录
+     */
+    private checkLoginStatus(): boolean
+    {
+        try {
+            // 检查localStorage中是否有登录凭证
+            const authToken = localStorage.getItem('authToken');
+            const userId = localStorage.getItem('userId');
+            const userInfo = localStorage.getItem('userInfo');
+
+            // 如果有authToken或userId以及用户信息，认为用户已登录
+            if ((authToken || userId) && userInfo) {
+                const user = JSON.parse(userInfo);
+                console.log('✅ User login detected:', user.username || user.name || 'Unknown');
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            console.warn('⚠️ Failed to check login status:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 跳过动画直接进入主游戏
+     */
+    private skipToMainGame(): void
+    {
+        console.log('⚡ Skipping boot animation, going to main game...');
+        
+        // 直接切换到主界面场景（GameEntrance 或 MainMenu）
         this.cameras.main.fadeOut(300, 0, 0, 0);
         
         this.cameras.main.once('camerafadeoutcomplete', () => {
-            this.scene.start('Preloader');
+            // 这里可以根据你的游戏结构选择合适的场景
+            // 如果登录后应该进入GameEntrance，使用 'GameEntrance'
+            // 如果登录后应该进入主菜单，使用 'MainMenu'
+            this.scene.start('GameEntrance');
         });
     }
 }
