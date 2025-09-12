@@ -179,8 +179,9 @@ export class GameEntrance extends Scene{
             // 为不同的图标添加特殊处理逻辑
             image.on('pointerdown', () => {
                 if (imageKeys[i] === 'game-entrance-vsc') {
-                    // 显示当前前端技术栈
-                    this.showTechStackInfo();
+                    // 切换回前端技术栈并进入游戏
+                    this.switchToFrontEndTechStack();
+                    this.scene.start(sceneKeys[i], {order: this.currentOrder});
                 } else if (imageKeys[i] === 'game-entrance-studio') {
                     // 切换到移动端技术栈并进入游戏
                     this.switchToMobileTechStack();
@@ -284,6 +285,29 @@ export class GameEntrance extends Scene{
         });
     }
     
+    /**
+     * 切换到前端技术栈
+     */
+    private switchToFrontEndTechStack(): void {
+        // 重置为前端技术栈模式
+        (window as any).useMobileTechStack = false;
+        
+        console.log('已切换到前端技术栈模式');
+        
+        // 显示切换提示
+        const notification = this.add.text(this.cameras.main.centerX, 100, '已切换到前端开发技术栈！', {
+            fontSize: '24px',
+            color: '#00aaff',
+            backgroundColor: '#000000',
+            padding: { x: 20, y: 10 }
+        }).setOrigin(0.5);
+        
+        // 2秒后移除提示
+        this.time.delayedCall(2000, () => {
+            notification.destroy();
+        });
+    }
+
     /**
      * 切换到移动端技术栈
      */
