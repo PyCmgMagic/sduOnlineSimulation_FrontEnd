@@ -43,8 +43,6 @@ export class FrontEndGame extends Scene {
     private particleEmitter: Phaser.GameObjects.Particles.ParticleEmitter | null = null;
     // 背景音乐
     private backgroundMusic: Phaser.Sound.BaseSound | null = null;
-
-
     constructor() {
         super("FrontEndGame");
     }
