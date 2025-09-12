@@ -158,8 +158,11 @@ export class GameEntrance extends Scene{
         const x: number = this.cameras.main.centerX;
         const y: number = this.cameras.main.centerY;
         
+        const background: GameObjects.Image = this.add.image(x, y, 'game-entrance-bg');
+
         const mac: GameObjects.Image = this.add.image(x, y + 25, 'game-entrance-mac');
         mac.setScale(0.7);
+        mac.setVisible(false);
         
         const screenX: number = mac.x - mac.width / 2 + 380;
         const screenY: number = mac.y + mac.height / 2 - 420;
