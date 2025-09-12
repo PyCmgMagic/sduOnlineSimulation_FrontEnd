@@ -1,6 +1,8 @@
 import { Scene } from "phaser";
 import { CustomerOrder } from "../../Game.ts";
 import { GameResult } from "./Types.ts";
+import GameApiService from "../../../../utils/gameApi";
+import { CommonFunction } from "../../../../utils/CommonFunction";
 
 /**
  * 前端游戏成功场景类
@@ -228,17 +230,45 @@ export class GameSuccessForFront extends Scene {
     /**
      * 返回主菜单
      */
-    private returnToMainMenu(): void {
+    private async returnToMainMenu(): Promise<void> {
         // 计算最终评分
         const finalScore = Math.round((this.gameResult.completionRate + this.gameResult.scoreRate) * 50);
-        
+
         // 标记前端开发任务为完成状态
         const task = this.currentOrder.items.find(item => item.item.id === 'frontend_dev');
         if (task) {
             task.status = 'completed';
             console.log(`任务 ${task.item.name} 已标记为完成，评分: ${finalScore}`);
+
+            // 调用API更新游戏状态
+            try {
+                CommonFunction.showToast(this, '正在同步游戏进度...', 1500, 'info');
+
+                // 准备更新数据 - 这里我们需要一个订单ID，暂时使用一个默认值
+                // 在实际应用中，应该从游戏开始时的API响应中获取订单ID
+                const orderId = parseInt(this.currentOrder.id) || 1; // 转换为数字，如果失败则使用1
+
+                const updateData = {
+                    items: JSON.stringify([{
+                        item: task.item,
+                        status: 'completed',
+                        difficulty: task.difficulty || 1,
+                        score: finalScore
+                    }]),
+                    status: 'in_progress', // 单个任务完成，但整个订单可能还在进行中
+                    preparationProgress: Math.round((this.gameResult.completionRate || 0) * 100)
+                };
+
+                await GameApiService.updateGameStatus(orderId, updateData);
+                console.log('✅ 前端游戏状态同步成功');
+                CommonFunction.showToast(this, '进度同步成功！', 1500, 'success');
+
+            } catch (error) {
+                console.warn('⚠️ 前端游戏状态同步失败:', error);
+                CommonFunction.showToast(this, '进度同步失败，但游戏继续', 2000, 'warning');
+            }
         }
-        
+
         // 返回到游戏入口场景，传递订单数据
         this.scene.start('GameEntrance', { order: this.currentOrder });
     }
