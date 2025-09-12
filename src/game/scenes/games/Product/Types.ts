@@ -95,5 +95,13 @@ export const ProductGameProperties: ProductGameProperties[] = [
         BAD_FRUIT_RADIUS: 44,
         BAD_FRUIT_KEY: 'game-product-bad-fruit-4',    
         TIME_LIMIT: 300,
+    },
+    {
+        DIFFICULTY: 9,
+        player_move_speed: 1,
+        PROBABILITY: [0.3, 0.3, 0.1, 0.1, 0, 0, 0, 0, 0.2],
+        BAD_FRUIT_RADIUS: 44,
+        BAD_FRUIT_KEY: 'game-product-bad-fruit-4',    
+        TIME_LIMIT: 300,
     }
 ]
