@@ -119,7 +119,7 @@ const LoginCallback: React.FC<LoginCallbackProps> = ({ onLoginSuccess }) => {
             }
 
             // 使用代理路径，避免跨域问题
-            const apiUrl = '/api/me';
+            const apiUrl = import.meta.env.VITE_BASE_URL + '/api/me';
             console.log('🔗 Attempting to fetch user info from:', apiUrl);
             console.log('🌐 Current origin:', window.location.origin);
             console.log('🔍 Fetch API available:', typeof fetch !== 'undefined');
