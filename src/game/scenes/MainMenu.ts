@@ -164,7 +164,26 @@ private createStartButton(): void {
         // 点击事件
         this.settingsButton.on('pointerdown', () => {
             console.log('⚙️ 设置按钮被点击');
+            this.showUserProfile();
         });
+    }
+
+    /**
+     * 显示用户资料
+     */
+    private showUserProfile(): void {
+        console.log('👤 显示用户资料');
+
+        // 检查用户是否已登录
+        const userInfo = localStorage.getItem('userInfo');
+        if (!userInfo) {
+            console.log('⚠️ 用户未登录，跳转到登录页面');
+            this.scene.start('Login');
+            return;
+        }
+
+        // 启动用户资料场景（作为弹窗）
+        this.scene.launch('UserProfile', { parentScene: 'MainMenu' });
     }
 
     /**

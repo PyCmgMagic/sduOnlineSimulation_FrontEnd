@@ -1,20 +1,44 @@
-import { useRef, useState } from 'react';
-import { IRefPhaserGame, PhaserGame } from './PhaserGame';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AntdConfigProvider } from './antd-config';
-import 'antd/dist/reset.css'; 
+import GamePage from './components/GamePage';
+import LoginCallback from './components/LoginCallback';
+import 'antd/dist/reset.css';
 
 function App() {
-    const phaserRef = useRef<IRefPhaserGame | null>(null);
-
-    const currentScene = (scene: Phaser.Scene) => {
-        // 场景切换回调
-    }
+    const handleLoginSuccess = (userInfo: any) => {
+        console.log('🎉 Login success in App:', userInfo);
+    };
 
     return (
         <AntdConfigProvider>
-            <div id="app">
-                <PhaserGame ref={phaserRef} currentActiveScene={currentScene} />
-            </div>
+            <Router>
+                <div id="app">
+                    <Routes>
+                        {/* 主游戏页面 */}
+                        <Route
+                            path="/"
+                            element={<GamePage />}
+                        />
+
+                        {/* 三方登录回调页面 */}
+                        <Route
+                            path="/login/callback"
+                            element={
+                                <LoginCallback
+                                    onLoginSuccess={handleLoginSuccess}
+                                />
+                            }
+                        />
+
+                        {/* 登录成功后的游戏页面（跳过动画） */}
+                        <Route
+                            path="/game"
+                            element={<GamePage skipBootAnimation={true} />}
+                        />
+                    </Routes>
+                </div>
+            </Router>
         </AntdConfigProvider>
     )
 }
