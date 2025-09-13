@@ -82,6 +82,7 @@ export class GameEntrance extends Scene{
             this.submitButton.setVisible(true);
             this.backButton.setVisible(false); // Hide back button to encourage submission
             this.progressBarVisibleSetter(false);
+
             // 显示完成提示
             CommonFunction.showToast(this, '🎉 所有任务已完成！可以提交项目了', 3000, 'success');
         } else {
