@@ -84,7 +84,7 @@ export class Game extends Scene
 
     // Data Pools
     private customerNames: string[] = [
-      '天使投资人', '李响','抠门的老板'
+      '阿里巴巴', '腾讯', '京东', '百度', '字节跳动', '美团', '滴滴', '快手', '拼多多', '携程','网易','山东大学'
     ];
 
     constructor ()
