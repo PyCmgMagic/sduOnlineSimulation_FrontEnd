@@ -136,6 +136,10 @@ class Request {
                 // 可以根据不同的HTTP状态码进行更具体的错误处理
                 if (error.response) {
                     switch (error.response.status) {
+                        case 302:
+                            // 处理重定向，通常表示需要重新登录
+                            this.handleRedirect(error.response);
+                            break;
                         case 401:
                             // 处理未授权错误，例如重定向到登录页
                             this.handleUnauthorized();
@@ -212,11 +216,50 @@ class Request {
     }
 
     // 错误处理方法
+    private handleRedirect(response: any): void {
+        console.warn('🔄 检测到302重定向，登录态可能已失效');
+
+        // 获取重定向的目标URL
+        const redirectUrl = response.headers?.location || response.headers?.Location;
+
+        if (redirectUrl) {
+            console.log('🔗 重定向目标URL:', redirectUrl);
+
+            // 清除本地存储的认证信息
+            this.clearAuthData();
+
+            // 如果重定向URL包含登录相关路径，直接跳转
+            if (redirectUrl.includes('/login') || redirectUrl.includes('/auth')) {
+                console.log('🚀 自动跳转到登录页面:', redirectUrl);
+                window.location.href = redirectUrl;
+            } else {
+                // 否则跳转到主页面，让用户重新登录
+                console.log('🏠 跳转到主页面重新登录');
+                window.location.href = '/';
+            }
+        } else {
+            // 没有重定向URL，清除认证信息并提示用户
+            this.clearAuthData();
+            console.warn('⚠️ 登录态已失效，请重新登录');
+            alert('登录态已失效，请重新登录');
+            window.location.href = '/';
+        }
+    }
+
     private handleUnauthorized(): void {
         // 清除本地存储的认证信息
-        localStorage.removeItem('token');
+        this.clearAuthData();
         // 可以在这里添加重定向到登录页的逻辑
         console.warn('用户未授权，请重新登录');
+    }
+
+    // 清除认证数据的通用方法
+    private clearAuthData(): void {
+        localStorage.removeItem('token');
+        localStorage.removeItem('userInfo');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('lastLoginTime');
     }
 
     private handleForbidden(): void {

@@ -80,10 +80,58 @@ export class UserProfile extends Scene {
                 throw new Error('服务器返回空数据');
             }
         } catch (error) {
-            console.warn('⚠️ 从服务器获取用户信息失败，使用本地缓存:', error);
-            // 如果服务器获取失败，回退到本地缓存
+            console.warn('⚠️ 从服务器获取用户信息失败:', error);
+
+            // 检查是否是认证相关的错误
+            if (this.isAuthError(error)) {
+                console.log('🔐 检测到认证错误，准备跳转登录页面');
+                this.handleAuthError();
+                return;
+            }
+
+            // 如果不是认证错误，回退到本地缓存
             this.loadUserInfoFromCache();
         }
+    }
+
+    /**
+     * 检查是否是认证相关的错误
+     */
+    private isAuthError(error: any): boolean {
+        // 检查HTTP状态码
+        if (error?.response?.status === 401 || error?.response?.status === 302) {
+            return true;
+        }
+
+        // 检查错误消息
+        const errorMessage = error?.message?.toLowerCase() || '';
+        const authKeywords = ['unauthorized', 'unauthenticated', 'login', 'auth', '未授权', '登录'];
+
+        return authKeywords.some(keyword => errorMessage.includes(keyword));
+    }
+
+    /**
+     * 处理认证错误
+     */
+    private handleAuthError(): void {
+        // 关闭当前弹窗
+        this.closeProfile();
+
+        // 清除本地认证数据
+        localStorage.removeItem('token');
+        localStorage.removeItem('userInfo');
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('lastLoginTime');
+
+        // 显示提示信息
+        console.log('🔄 登录态已失效，即将跳转到登录页面');
+
+        // 延迟跳转，让用户看到提示
+        this.time.delayedCall(1000, () => {
+            // 跳转到登录场景
+            this.scene.get('MainMenu')?.scene.start('Login');
+        });
     }
 
     /**
@@ -239,6 +287,82 @@ export class UserProfile extends Scene {
         this.createActionButtons();
     }
 
+    /**
+     * 加载并显示头像
+     */
+    private loadAndDisplayAvatar(avatarContainer: GameObjects.Container): void {
+        if (!this.userInfo) return;
+
+        const avatarUrl = this.userInfo.avatar;
+
+        if (avatarUrl && avatarUrl.trim() !== '') {
+            // 有头像URL，尝试加载图片
+            console.log('🖼️ 正在加载用户头像:', avatarUrl);
+
+            // 创建一个临时的Image对象来测试图片是否能加载
+            const img = new Image();
+            img.crossOrigin = 'anonymous'; // 处理跨域问题
+
+            img.onload = () => {
+                console.log('✅ 头像加载成功');
+
+                // 创建一个唯一的纹理键名
+                const textureKey = `user-avatar-${this.userInfo?.id || 'default'}`;
+
+                // 如果纹理已存在，先销毁它
+                if (this.textures.exists(textureKey)) {
+                    this.textures.remove(textureKey);
+                }
+
+                // 将图片添加为纹理
+                this.textures.addImage(textureKey, img);
+
+                // 创建头像图片对象
+                const avatarImage = this.add.image(0, 0, textureKey);
+                avatarImage.setDisplaySize(76, 76); // 设置显示尺寸为圆形背景的大小
+                avatarImage.setOrigin(0.5);
+
+                // 创建圆形遮罩
+                const mask = this.add.graphics();
+                mask.fillStyle(0xffffff);
+                mask.fillCircle(0, 0, 38); // 稍小于背景圆形
+
+                // 应用遮罩使头像变成圆形
+                const maskShape = mask.createGeometryMask();
+                avatarImage.setMask(maskShape);
+
+                // 将头像和遮罩添加到容器
+                avatarContainer.add([avatarImage, mask]);
+            };
+
+            img.onerror = () => {
+                console.warn('⚠️ 头像加载失败，使用默认头像');
+                this.createDefaultAvatar(avatarContainer);
+            };
+
+            // 开始加载图片
+            img.src = avatarUrl;
+        } else {
+            // 没有头像URL，使用默认头像
+            console.log('📝 使用默认头像（用户名首字母）');
+            this.createDefaultAvatar(avatarContainer);
+        }
+    }
+
+    /**
+     * 创建默认头像（用户名首字母）
+     */
+    private createDefaultAvatar(avatarContainer: GameObjects.Container): void {
+        const avatarText = this.add.text(0, 0, this.userInfo?.username?.charAt(0).toUpperCase() || '用', {
+            fontSize: '32px',
+            color: '#4a90e2',
+            fontFamily: '微软雅黑, Arial',
+            fontStyle: 'bold'
+        });
+        avatarText.setOrigin(0.5);
+        avatarContainer.add(avatarText);
+    }
+
     private createUserInfoContent(): void {
         if (!this.userInfo) return;
 
@@ -256,15 +380,8 @@ export class UserProfile extends Scene {
         avatarBg.strokeCircle(0, 0, 40);
         avatarContainer.add(avatarBg);
 
-        // 头像文字（如果没有头像图片）
-        const avatarText = this.add.text(0, 0, this.userInfo.username?.charAt(0).toUpperCase() || '用', {
-            fontSize: '32px',
-            color: '#4a90e2',
-            fontFamily: '微软雅黑, Arial',
-            fontStyle: 'bold'
-        });
-        avatarText.setOrigin(0.5);
-        avatarContainer.add(avatarText);
+        // 尝试加载头像图片
+        this.loadAndDisplayAvatar(avatarContainer);
 
         this.modal?.add(avatarContainer);
 
