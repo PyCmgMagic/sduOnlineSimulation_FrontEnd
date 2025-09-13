@@ -12,7 +12,6 @@ export class GameEntrance extends Scene{
     private progressBarUpdater: (progress: number) => void;
     private progressBarVisibleSetter: (visible: boolean) => void;
     private progressText: GameObjects.Text;
-    private progressBarContainer: GameObjects.Container;
     
     private currentOrder: CustomerOrder;
     
@@ -83,27 +82,23 @@ export class GameEntrance extends Scene{
             this.submitButton.setVisible(true);
             this.backButton.setVisible(false); // Hide back button to encourage submission
             this.progressBarVisibleSetter(false);
-            
             // 隐藏进度条和进度文本
             this.progressText.setVisible(false);
-            this.progressBarContainer.setVisible(false);
-
             // 显示完成提示
             CommonFunction.showToast(this, '🎉 所有任务已完成！可以提交项目了', 3000, 'success');
         } else {
             this.submitButton.setVisible(false);
             // 确保进度条和文本在未完成时可见
             this.progressText.setVisible(true);
-            this.progressBarContainer.setVisible(true);
+            this.progressBarVisibleSetter(true);
         }
     }
     private createOperateButtons() {
         // Add a back button
-        this.backButton = this.add.container(150, 700);
-        const backImage = this.add.image(25, 10, 'game-entrance-arrow-w');
-        backImage.setScale(2);
-        const text_back = this.add.text(0, 0, "返回", {
-            fontSize: 15,
+        this.backButton = this.add.container(190, 630);
+        const backImage = this.add.image(0, 0, 'game-entrance-arrow');
+        const text_back = this.add.text(-15, -20, "返回", {
+            fontSize: 32,
             fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
             color: '#ffffff',
             stroke: '#000000',
@@ -111,13 +106,13 @@ export class GameEntrance extends Scene{
         })
         backImage.setInteractive();
         backImage.on('pointerover', () => {
-            backImage.setScale(2.2)
+            backImage.setScale(1.1)
         })
         backImage.on('pointerout', () => {
             backImage.setScale(1)
         })
         backImage.on('pointerdown', () => {
-            backImage.setScale(1.8)
+            backImage.setScale(0.8)
         })
         backImage.on('pointerup', () => {
             this.scene.start("Game")
@@ -164,12 +159,13 @@ export class GameEntrance extends Scene{
         
         // 设置进度条位置为右下角
         const progressBarX = screenWidth - 170; // 距离右边170像素
-        const progressBarY = screenHeight - 50;  // 距离底部80像素
+        const progressBarY = screenHeight - 80;  // 距离底部80像素
         
         // Add a progress bar
-        const progressBar = CommonFunction.createProgressBar(this, 850, 40, 300, 25);
+        const progressBar = CommonFunction.createProgressBar(this, progressBarX, progressBarY, 300, 25);
         this.progressBarUpdater = progressBar.updateProgress;
-        this.progressText = this.add.text(850, 70, '进度: 0%', { fontSize: '20px', color: '#ffffff' }).setOrigin(0.5);
+        this.progressBarVisibleSetter = progressBar.setVisible;
+        this.progressText = this.add.text(progressBarX, progressBarY + 30, '进度: 0%', { fontSize: '20px', color: '#000' }).setOrigin(0.5);
     }
     
     private createComputerArea() {
