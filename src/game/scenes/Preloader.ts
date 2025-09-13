@@ -1132,29 +1132,37 @@ export class Preloader extends Scene
      */
     private createGlobalAnimations(): void
     {
-        // 创建按钮点击动画
-        if (!this.anims.exists('button-click')) {
-            this.anims.create({
-                key: 'button-click',
-                frames: [
-                    { key: 'button', frame: 0 },
-                    { key: 'button', frame: 1 }
-                ],
-                frameRate: 10,
-                repeat: 0
-            });
+        // 创建按钮点击动画（仅当存在合适的雪碧图时）
+        if (!this.anims.exists('button-click') && this.textures.exists('button')) {
+            try {
+                this.anims.create({
+                    key: 'button-click',
+                    frames: [
+                        { key: 'button', frame: 0 },
+                        { key: 'button', frame: 1 }
+                    ],
+                    frameRate: 10,
+                    repeat: 0
+                });
+            } catch (e) {
+                console.warn('Skip creating button-click animation: missing sprite sheet "button"');
+            }
         }
-        
-        // 创建星星闪烁动画
-        if (!this.anims.exists('star-twinkle')) {
-            this.anims.create({
-                key: 'star-twinkle',
-                frames: this.anims.generateFrameNumbers('star', { start: 0, end: 3 }),
-                frameRate: 8,
-                repeat: -1
-            });
+
+        // 创建星星闪烁动画（单帧占位，避免因非雪碧图报错）
+        if (!this.anims.exists('star-twinkle') && this.textures.exists('star')) {
+            try {
+                this.anims.create({
+                    key: 'star-twinkle',
+                    frames: [{ key: 'star' }],
+                    frameRate: 1,
+                    repeat: -1
+                });
+            } catch (e) {
+                console.warn('Skip creating star-twinkle animation:', e);
+            }
         }
-        
+
         console.log('🎬 Global animations created');
     }
 

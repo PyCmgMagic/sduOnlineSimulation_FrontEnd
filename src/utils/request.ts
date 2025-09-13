@@ -62,8 +62,9 @@ class Request {
         }
 
         this.axiosInstance = axios.create({
-            baseURL: baseUrl, // 从 .requestconfig 文件加载API基础URL
+            baseURL: baseUrl, // 从环境变量加载API基础URL
             timeout: 10000, // 请求超时时间，10秒
+            withCredentials: true, // 允许跨域携带 Cookie
             headers: {
                 'Content-Type': 'application/json;charset=UTF-8',
             },

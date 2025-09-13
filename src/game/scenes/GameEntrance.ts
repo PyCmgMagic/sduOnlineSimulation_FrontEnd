@@ -1,6 +1,7 @@
 import {GameObjects, Scene} from "phaser";
 import {CommonFunction} from "../../utils/CommonFunction.ts";
 import {CustomerOrder} from "./Game.ts";
+import GameApiService from "../../utils/gameApi";
 
 export class GameEntrance extends Scene{
     
@@ -68,7 +69,10 @@ export class GameEntrance extends Scene{
         const progress = completedTasks / totalTasks;
 
         this.progressBarUpdater(progress);
-        this.progressText.setText(`进度: ${Math.round(progress * 100)}%`);
+
+        // 显示更详细的进度信息
+        const progressText = `进度: ${completedTasks}/${totalTasks} (${Math.round(progress * 100)}%)`;
+        this.progressText.setText(progressText);
 
         const allTasksCompleted = completedTasks === totalTasks;
 
@@ -76,6 +80,9 @@ export class GameEntrance extends Scene{
             this.buttons.forEach(button => button.setVisible(false));
             this.submitButton.setVisible(true);
             this.backButton.setVisible(false); // Hide back button to encourage submission
+
+            // 显示完成提示
+            CommonFunction.showToast(this, '🎉 所有任务已完成！可以提交项目了', 3000, 'success');
         } else {
             this.submitButton.setVisible(false);
         }
@@ -167,28 +174,54 @@ export class GameEntrance extends Scene{
         const screenX: number = mac.x - mac.width / 2 + 380;
         const screenY: number = mac.y + mac.height / 2 - 420;
         
-        const imageKeys: string[] = ['game-entrance-xd', 'game-entrance-ps', 'game-entrance-vsc', 'game-entrance-studio', 'game-entrance-idea']
-        const sceneKeys: string[] = ['ProductGame', 'VisionGame', 'FrontEndGame', "FrontEndGame", 'BackEndGame']
-        const ids: string[] = ['product_design', 'visual_design', 'frontend_dev', 'frontend_dev', 'backend_dev'];
+        // 定义任务ID到图标和场景的映射
+        const taskMapping: Record<string, { imageKey: string; sceneKey: string }> = {
+            'product_design': { imageKey: 'game-entrance-xd', sceneKey: 'ProductGame' },
+            'visual_design': { imageKey: 'game-entrance-ps', sceneKey: 'VisionGame' },
+            'frontend_dev': { imageKey: 'game-entrance-vsc', sceneKey: 'FrontEndGame' },
+            'backend_dev': { imageKey: 'game-entrance-idea', sceneKey: 'BackEndGame' },
+            'mobile_dev': { imageKey: 'game-entrance-studio', sceneKey: 'FrontEndGame' }
+        };
+
+        // 根据当前订单的任务动态生成图标数组
+        const taskItems = this.currentOrder.items.map(orderItem => ({
+            id: orderItem.item.id,
+            imageKey: taskMapping[orderItem.item.id]?.imageKey || 'game-entrance-vsc',
+            sceneKey: taskMapping[orderItem.item.id]?.sceneKey || 'FrontEndGame'
+        }));
         
-        for(let i = 0; i < imageKeys.length; i++) {
-            const image = this.add.image(screenX + 20 + i * 60, screenY - 20, imageKeys[i]);
+        for(let i = 0; i < taskItems.length; i++) {
+            const taskItem = taskItems[i];
+            const image = this.add.image(screenX + 20 + i * 60, screenY - 20, taskItem.imageKey);
             image.setScale(50 / image.width);
             image.setInteractive();
-            
+
             // 为不同的图标添加特殊处理逻辑
-            image.on('pointerdown', () => {
-                if (imageKeys[i] === 'game-entrance-vsc') {
+            image.on('pointerdown', async () => {
+                // 获取当前任务的ID，用于API调用
+                const taskId = taskItem.id;
+
+                try {
+                    // 调用begin接口开始小游戏
+                    CommonFunction.showToast(this, '正在启动游戏...', 1500, 'info');
+                    await GameApiService.beginGame(taskId);
+                    console.log(`🎮 小游戏 ${taskId} 开始成功`);
+                } catch (error) {
+                    console.warn(`⚠️ 小游戏 ${taskId} API调用失败，继续离线模式:`, error);
+                    CommonFunction.showToast(this, '离线模式启动', 1500, 'warning');
+                }
+
+                if (taskItem.imageKey === 'game-entrance-vsc') {
                     // 切换回前端技术栈并进入游戏
                     this.switchToFrontEndTechStack();
-                    this.scene.start(sceneKeys[i], {order: this.currentOrder});
-                } else if (imageKeys[i] === 'game-entrance-studio') {
+                    this.scene.start(taskItem.sceneKey, {order: this.currentOrder});
+                } else if (taskItem.imageKey === 'game-entrance-studio') {
                     // 切换到移动端技术栈并进入游戏
                     this.switchToMobileTechStack();
-                    this.scene.start(sceneKeys[i], {order: this.currentOrder});
+                    this.scene.start(taskItem.sceneKey, {order: this.currentOrder});
                 } else {
                     // 其他图标正常进入游戏
-                    this.scene.start(sceneKeys[i], {order: this.currentOrder});
+                    this.scene.start(taskItem.sceneKey, {order: this.currentOrder});
                 }
                 image.setScale(45 / image.width);
             })
@@ -201,11 +234,45 @@ export class GameEntrance extends Scene{
                 image.setScale(50 / image.width);
             })
             
-            const task = this.currentOrder.items.find(item => item.item.id === ids[i]);
-            
-            if (task && task.status === 'completed') {
-                image.setAlpha(0.5);
-                image.disableInteractive();
+            // 根据任务状态设置图标外观
+            const task = this.currentOrder.items.find(item => item.item.id === taskItem.id);
+
+            if (task) {
+                if (task.status === 'completed') {
+                    // 已完成的任务：半透明且不可交互
+                    image.setAlpha(0.5);
+                    image.disableInteractive();
+
+                    // 添加完成标记
+                    const checkMark = this.add.text(screenX + 20 + i * 60, screenY + 10, '✓', {
+                        fontSize: '16px',
+                        color: '#00ff00',
+                        fontStyle: 'bold'
+                    });
+                    checkMark.setOrigin(0.5);
+                } else {
+                    // 未完成的任务：正常显示
+                    image.setAlpha(1.0);
+
+                    // 显示任务难度
+                    if (task.difficulty) {
+                        const difficultyText = this.add.text(screenX + 20 + i * 60, screenY + 15, `★${task.difficulty}`, {
+                            fontSize: '12px',
+                            color: '#ffff00',
+                            fontStyle: 'bold'
+                        });
+                        difficultyText.setOrigin(0.5);
+                    }
+                }
+
+                // 添加任务名称提示
+                const taskNameText = this.add.text(screenX + 20 + i * 60, screenY + 30, task.item.name, {
+                    fontSize: '10px',
+                    color: '#ffffff',
+                    backgroundColor: '#000000',
+                    padding: { x: 4, y: 2 }
+                });
+                taskNameText.setOrigin(0.5);
             }
         }
         

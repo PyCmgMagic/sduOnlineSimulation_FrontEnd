@@ -1,5 +1,7 @@
 import { GameObjects, Scene } from 'phaser';
 import { EventBus } from '../EventBus';
+import GameApiService, { RankingItem } from '../../utils/gameApi';
+import { CommonFunction } from '../../utils/CommonFunction.ts';
 
 export class MainMenu extends Scene
 {
@@ -21,6 +23,11 @@ export class MainMenu extends Scene
     
     // 排行榜界面容器
     rankModal: GameObjects.Container | null = null;
+
+    // 排行榜数据
+    private rankingData: RankingItem[] = [];
+    private currentRankingType: 'coins' | 'maxCoins' = 'coins';
+    private isLoadingRanking: boolean = false;
 
     constructor ()
     {
@@ -289,7 +296,7 @@ private createStartButton(): void {
     /**
      * 显示排行榜界面
      */
-    private showRankModal(): void {
+    private async showRankModal(): Promise<void> {
         if (this.rankModal) {
             return; // 如果已经显示，则不重复创建
         }
@@ -305,11 +312,26 @@ private createStartButton(): void {
         overlay.setInteractive();
         this.rankModal.add(overlay);
 
+        // 先显示基础界面
+        this.createRankModalUI();
+
+        // 异步加载排行榜数据
+        await this.loadRankingData();
+
+    }
+
+    /**
+     * 创建排行榜UI界面
+     */
+    private createRankModalUI(): void {
+        if (!this.rankModal) return;
+
         // 创建排行榜背景
         const rankBg = this.add.image(0, 0, 'rank_bg');
         rankBg.setOrigin(0.5);
         rankBg.setScale(0.9);
         this.rankModal.add(rankBg);
+
         // 创建排行榜内容区域
         const contentArea = this.add.graphics();
         contentArea.fillStyle(0xFFFFF8, 0.95);
@@ -317,6 +339,15 @@ private createStartButton(): void {
         contentArea.fillRoundedRect(-200, -140, 400, 280, 20);
         contentArea.strokeRoundedRect(-200, -140, 400, 280, 20);
         this.rankModal.add(contentArea);
+
+        // 创建切换按钮
+        this.createRankingTypeButtons();
+
+        // 创建表头
+        this.createRankingHeader();
+
+        // 显示加载提示
+        this.showLoadingIndicator();
 
         // 添加表头
         const headerBg = this.add.graphics();
@@ -351,118 +382,11 @@ private createStartButton(): void {
         headerScore.setOrigin(0.5);
         this.rankModal?.add(headerScore);
 
-        // 添加排行榜数据（暂时使用模拟数据）
-        const rankData = [
-            { rank: 1, name: '学线大神', score: 99999 },
-            { rank: 2, name: '代码高手', score: 88888 },
-            { rank: 3, name: '项目达人', score: 77777 },
-            { rank: 4, name: '开发新星', score: 66666 },
-            { rank: 5, name: '编程爱好者', score: 55555 }
-        ];
-
-        rankData.forEach((data, index) => {
-            const y = -70 + index * 45;
-            const isTopThree = index < 3;
-            const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
-            const rankColor = isTopThree ? rankColors[index] : '#666666';
-            
-            // 为前三名添加背景高亮
-              if (isTopThree) {
-                  const rowBg = this.add.graphics();
-                  const bgColor = index === 0 ? 0xFFD700 : index === 1 ? 0xC0C0C0 : 0xCD7F32;
-                  rowBg.fillStyle(bgColor, 0.1);
-                  rowBg.fillRoundedRect(-180, y - 18, 360, 36, 8);
-                  this.rankModal?.add(rowBg);
-              }
-            
-            // 排名图标
-            let rankIcon = '';
-            if (index === 0) rankIcon = '🥇';
-            else if (index === 1) rankIcon = '🥈';
-            else if (index === 2) rankIcon = '🥉';
-            
-            const rankText = this.add.text(-150, y, rankIcon ? `${rankIcon}` : `${data.rank}`, {
-                 fontSize: rankIcon ? '28px' : '24px',
-                 color: rankColor,
-                 fontFamily: '微软雅黑, Arial',
-                 fontStyle: 'bold'
-             });
-             rankText.setOrigin(0.5);
-             this.rankModal?.add(rankText);
-             
-             // 玩家名称
-             const nameText = this.add.text(0, y, data.name, {
-                 fontSize: '20px',
-                 color: isTopThree ? '#2C3E50' : '#34495E',
-                 fontFamily: '微软雅黑, Arial',
-                 fontStyle: isTopThree ? 'bold' : 'normal'
-             });
-             nameText.setOrigin(0.5);
-             this.rankModal?.add(nameText);
-             
-             // 分数
-             const scoreText = this.add.text(150, y, `${data.score.toLocaleString()}`, {
-                 fontSize: '20px',
-                 color: '#E74C3C',
-                 fontFamily: '微软雅黑, Arial',
-                 fontStyle: 'bold'
-             });
-             scoreText.setOrigin(0.5);
-             this.rankModal?.add(scoreText);
-            
-            // 为前三名添加闪烁效果
-            if (isTopThree) {
-                this.tweens.add({
-                    targets: [rankText, nameText, scoreText],
-                    alpha: 0.7,
-                    duration: 1000,
-                    yoyo: true,
-                    repeat: -1,
-                    ease: 'Sine.easeInOut'
-                });
-            }
-        });
-
         // 创建关闭按钮
-        const closeButtonBg = this.add.graphics();
-        closeButtonBg.fillStyle(0xFF4757, 0.9);
-        closeButtonBg.fillCircle(240, -160, 20);
-        closeButtonBg.lineStyle(2, 0xFFFFFF, 1);
-        closeButtonBg.strokeCircle(240, -160, 20);
-        this.rankModal.add(closeButtonBg);
-        
-        const closeButton = this.add.text(240, -160, '✕', {
-            fontSize: '24px',
-            color: '#FFFFFF',
-            fontFamily: 'Arial',
-            fontStyle: 'bold'
-        });
-        closeButton.setOrigin(0.5);
-        closeButton.setInteractive({ useHandCursor: true });
-        
-        // 关闭按钮悬停效果
-        closeButton.on('pointerover', () => {
-            closeButtonBg.clear();
-            closeButtonBg.fillStyle(0xFF3742, 1);
-            closeButtonBg.fillCircle(240, -160, 22);
-            closeButtonBg.lineStyle(2, 0xFFFFFF, 1);
-            closeButtonBg.strokeCircle(240, -160, 22);
-        });
-        
-        closeButton.on('pointerout', () => {
-            closeButtonBg.clear();
-            closeButtonBg.fillStyle(0xFF4757, 0.9);
-            closeButtonBg.fillCircle(240, -160, 20);
-            closeButtonBg.lineStyle(2, 0xFFFFFF, 1);
-            closeButtonBg.strokeCircle(240, -160, 20);
-        });
-        
-        closeButton.on('pointerdown', () => {
-            this.hideRankModal();
-        });
-        this.rankModal?.add(closeButton);
+        this.createCloseButton();
 
         // 点击遮罩关闭
+        const overlay = this.rankModal.list[0] as Phaser.GameObjects.Graphics;
         overlay.on('pointerdown', () => {
             this.hideRankModal();
         });
@@ -518,5 +442,320 @@ private createStartButton(): void {
             this.rankModal.destroy();
             this.rankModal = null;
         }
+    }
+
+    /**
+     * 创建排行榜类型切换按钮
+     */
+    private createRankingTypeButtons(): void {
+        if (!this.rankModal) return;
+
+        // 当前金币排行榜按钮
+        const coinsButton = this.add.graphics();
+        const isCoinsActive = this.currentRankingType === 'coins';
+        coinsButton.fillStyle(isCoinsActive ? 0x4CAF50 : 0x9E9E9E, 0.8);
+        coinsButton.fillRoundedRect(-180, -170, 80, 25, 5);
+        coinsButton.setInteractive(new Phaser.Geom.Rectangle(-180, -170, 80, 25), Phaser.Geom.Rectangle.Contains);
+        this.rankModal.add(coinsButton);
+
+        const coinsText = this.add.text(-140, -157, '当前金币', {
+            fontSize: '12px',
+            color: '#ffffff',
+            fontFamily: '微软雅黑, Arial',
+            fontStyle: 'bold'
+        });
+        coinsText.setOrigin(0.5);
+        this.rankModal.add(coinsText);
+
+        // 最高金币排行榜按钮
+        const maxCoinsButton = this.add.graphics();
+        const isMaxCoinsActive = this.currentRankingType === 'maxCoins';
+        maxCoinsButton.fillStyle(isMaxCoinsActive ? 0x4CAF50 : 0x9E9E9E, 0.8);
+        maxCoinsButton.fillRoundedRect(-90, -170, 80, 25, 5);
+        maxCoinsButton.setInteractive(new Phaser.Geom.Rectangle(-90, -170, 80, 25), Phaser.Geom.Rectangle.Contains);
+        this.rankModal.add(maxCoinsButton);
+
+        const maxCoinsText = this.add.text(-50, -157, '最高金币', {
+            fontSize: '12px',
+            color: '#ffffff',
+            fontFamily: '微软雅黑, Arial',
+            fontStyle: 'bold'
+        });
+        maxCoinsText.setOrigin(0.5);
+        this.rankModal.add(maxCoinsText);
+
+        // 按钮点击事件
+        coinsButton.on('pointerdown', async () => {
+            if (this.currentRankingType !== 'coins' && !this.isLoadingRanking) {
+                this.currentRankingType = 'coins';
+                await this.loadRankingData();
+                this.refreshRankingUI();
+            }
+        });
+
+        maxCoinsButton.on('pointerdown', async () => {
+            if (this.currentRankingType !== 'maxCoins' && !this.isLoadingRanking) {
+                this.currentRankingType = 'maxCoins';
+                await this.loadRankingData();
+                this.refreshRankingUI();
+            }
+        });
+    }
+
+    /**
+     * 创建排行榜表头
+     */
+    private createRankingHeader(): void {
+        if (!this.rankModal) return;
+
+        // 添加表头背景
+        const headerBg = this.add.graphics();
+        headerBg.fillStyle(0x8B4513, 0.1);
+        headerBg.fillRoundedRect(-180, -130, 360, 35, 10);
+        this.rankModal.add(headerBg);
+
+        // 排名列
+        const headerRank = this.add.text(-150, -112, '排名', {
+            fontSize: '18px',
+            color: '#8B4513',
+            fontFamily: '微软雅黑, Arial',
+            fontStyle: 'bold'
+        });
+        headerRank.setOrigin(0.5);
+        this.rankModal.add(headerRank);
+
+        // 玩家名称列
+        const headerName = this.add.text(0, -112, '玩家名称', {
+            fontSize: '18px',
+            color: '#8B4513',
+            fontFamily: '微软雅黑, Arial',
+            fontStyle: 'bold'
+        });
+        headerName.setOrigin(0.5);
+        this.rankModal.add(headerName);
+
+        // 分数列（动态标题）
+        const scoreTitle = this.currentRankingType === 'coins' ? '当前金币' : '最高金币';
+        const headerScore = this.add.text(150, -112, scoreTitle, {
+            fontSize: '18px',
+            color: '#8B4513',
+            fontFamily: '微软雅黑, Arial',
+            fontStyle: 'bold'
+        });
+        headerScore.setOrigin(0.5);
+        this.rankModal.add(headerScore);
+    }
+
+    /**
+     * 显示加载指示器
+     */
+    private showLoadingIndicator(): void {
+        if (!this.rankModal) return;
+
+        const loadingText = this.add.text(0, 0, '正在加载排行榜数据...', {
+            fontSize: '16px',
+            color: '#666666',
+            fontFamily: '微软雅黑, Arial'
+        });
+        loadingText.setOrigin(0.5);
+        loadingText.setName('loadingIndicator');
+        this.rankModal.add(loadingText);
+    }
+
+    /**
+     * 加载排行榜数据
+     */
+    private async loadRankingData(): Promise<void> {
+        if (this.isLoadingRanking) return;
+
+        this.isLoadingRanking = true;
+
+        try {
+            // 显示加载提示
+            CommonFunction.showToast(this, '正在加载排行榜...', 1500, 'info');
+
+            // 根据当前类型调用相应的API
+            if (this.currentRankingType === 'coins') {
+                this.rankingData = await GameApiService.getCoinsRanking(10); // 获取前10名
+            } else {
+                this.rankingData = await GameApiService.getMaxCoinsRanking(10); // 获取前10名
+            }
+
+            console.log('✅ 排行榜数据加载成功:', this.rankingData);
+            CommonFunction.showToast(this, '排行榜加载成功！', 1500, 'success');
+
+            // 显示数据
+            this.displayRankingData();
+
+        } catch (error) {
+            console.warn('⚠️ 排行榜数据加载失败:', error);
+            CommonFunction.showToast(this, '排行榜加载失败，显示离线数据', 2000, 'warning');
+
+            // 使用模拟数据作为后备
+            this.rankingData = this.getMockRankingData();
+            this.displayRankingData();
+        } finally {
+            this.isLoadingRanking = false;
+        }
+    }
+
+    /**
+     * 获取模拟排行榜数据（作为API失败时的后备）
+     */
+    private getMockRankingData(): RankingItem[] {
+        return [
+            { rank: 1, userId: 1, username: '学线大神', avatar: '', coins: 99999, maxCoins: 99999 },
+            { rank: 2, userId: 2, username: '代码高手', avatar: '', coins: 88888, maxCoins: 88888 },
+            { rank: 3, userId: 3, username: '项目达人', avatar: '', coins: 77777, maxCoins: 77777 },
+            { rank: 4, userId: 4, username: '开发新星', avatar: '', coins: 66666, maxCoins: 66666 },
+            { rank: 5, userId: 5, username: '编程爱好者', avatar: '', coins: 55555, maxCoins: 55555 }
+        ];
+    }
+
+    /**
+     * 显示排行榜数据
+     */
+    private displayRankingData(): void {
+        if (!this.rankModal) return;
+
+        // 移除加载指示器
+        const loadingIndicator = this.rankModal.getByName('loadingIndicator');
+        if (loadingIndicator) {
+            loadingIndicator.destroy();
+        }
+
+        // 移除旧的排行榜数据显示
+        this.rankModal.each((child: any) => {
+            if (child.name && child.name.startsWith('rankItem_')) {
+                child.destroy();
+            }
+        });
+
+        // 显示新的排行榜数据
+        this.rankingData.forEach((data, index) => {
+            const y = -70 + index * 45;
+            const isTopThree = index < 3;
+            const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
+            const rankColor = isTopThree ? rankColors[index] : '#666666';
+
+            // 为前三名添加背景高亮
+            if (isTopThree) {
+                const rowBg = this.add.graphics();
+                const bgColor = index === 0 ? 0xFFD700 : index === 1 ? 0xC0C0C0 : 0xCD7F32;
+                rowBg.fillStyle(bgColor, 0.1);
+                rowBg.fillRoundedRect(-180, y - 18, 360, 36, 8);
+                rowBg.setName(`rankItem_bg_${index}`);
+                this.rankModal?.add(rowBg);
+            }
+
+            // 排名图标
+            let rankIcon = '';
+            if (index === 0) rankIcon = '🥇';
+            else if (index === 1) rankIcon = '🥈';
+            else if (index === 2) rankIcon = '🥉';
+
+            const rankText = this.add.text(-150, y, rankIcon ? `${rankIcon}` : `${data.rank}`, {
+                fontSize: rankIcon ? '28px' : '24px',
+                color: rankColor,
+                fontFamily: '微软雅黑, Arial',
+                fontStyle: 'bold'
+            });
+            rankText.setOrigin(0.5);
+            rankText.setName(`rankItem_rank_${index}`);
+            this.rankModal?.add(rankText);
+
+            // 玩家名称
+            const nameText = this.add.text(0, y, data.username, {
+                fontSize: '20px',
+                color: isTopThree ? '#2C3E50' : '#34495E',
+                fontFamily: '微软雅黑, Arial',
+                fontStyle: isTopThree ? 'bold' : 'normal'
+            });
+            nameText.setOrigin(0.5);
+            nameText.setName(`rankItem_name_${index}`);
+            this.rankModal?.add(nameText);
+
+            // 分数（根据当前排行榜类型显示不同的分数）
+            const score = this.currentRankingType === 'coins' ? data.coins : data.maxCoins;
+            const scoreText = this.add.text(150, y, `${(score || 0).toLocaleString()}`, {
+                fontSize: '20px',
+                color: '#E74C3C',
+                fontFamily: '微软雅黑, Arial',
+                fontStyle: 'bold'
+            });
+            scoreText.setOrigin(0.5);
+            scoreText.setName(`rankItem_score_${index}`);
+            this.rankModal?.add(scoreText);
+        });
+
+        // 如果没有数据，显示提示
+        if (this.rankingData.length === 0) {
+            const noDataText = this.add.text(0, 0, '暂无排行榜数据', {
+                fontSize: '18px',
+                color: '#999999',
+                fontFamily: '微软雅黑, Arial'
+            });
+            noDataText.setOrigin(0.5);
+            noDataText.setName('rankItem_nodata');
+            this.rankModal?.add(noDataText);
+        }
+    }
+
+    /**
+     * 创建关闭按钮
+     */
+    private createCloseButton(): void {
+        if (!this.rankModal) return;
+
+        // 创建关闭按钮
+        const closeButtonBg = this.add.graphics();
+        closeButtonBg.fillStyle(0xFF4757, 0.9);
+        closeButtonBg.fillCircle(240, -160, 20);
+        closeButtonBg.lineStyle(2, 0xFFFFFF, 1);
+        closeButtonBg.strokeCircle(240, -160, 20);
+        this.rankModal.add(closeButtonBg);
+
+        const closeButton = this.add.text(240, -160, '✕', {
+            fontSize: '24px',
+            color: '#FFFFFF',
+            fontFamily: 'Arial',
+            fontStyle: 'bold'
+        });
+        closeButton.setOrigin(0.5);
+        closeButton.setInteractive({ useHandCursor: true });
+
+        // 关闭按钮悬停效果
+        closeButton.on('pointerover', () => {
+            closeButtonBg.clear();
+            closeButtonBg.fillStyle(0xFF3742, 1);
+            closeButtonBg.fillCircle(240, -160, 22);
+            closeButtonBg.lineStyle(2, 0xFFFFFF, 1);
+            closeButtonBg.strokeCircle(240, -160, 22);
+        });
+
+        closeButton.on('pointerout', () => {
+            closeButtonBg.clear();
+            closeButtonBg.fillStyle(0xFF4757, 0.9);
+            closeButtonBg.fillCircle(240, -160, 20);
+            closeButtonBg.lineStyle(2, 0xFFFFFF, 1);
+            closeButtonBg.strokeCircle(240, -160, 20);
+        });
+
+        closeButton.on('pointerdown', () => {
+            this.hideRankModal();
+        });
+        this.rankModal.add(closeButton);
+    }
+
+    /**
+     * 刷新排行榜UI
+     */
+    private refreshRankingUI(): void {
+        if (!this.rankModal) return;
+
+        // 重新创建UI组件
+        this.rankModal.removeAll(true);
+        this.createRankModalUI();
+        this.displayRankingData();
     }
 }
