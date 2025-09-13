@@ -99,7 +99,7 @@ export class ApiTestUtils {
                     difficulty: 3,
                     score: 85
                 }]),
-                status: 'completed',
+                status: 'finish',
                 preparationProgress: 100
             };
             

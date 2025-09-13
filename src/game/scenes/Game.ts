@@ -470,7 +470,7 @@ export class Game extends Scene
                 const updateData = {
                     items: JSON.stringify(orderToComplete.items),
                     total: finalPayment,
-                    status: 'completed',
+                    status: 'finish',
                     orderTime: formatIsoLocal(new Date()),
                     totalDevTime: order.totalDevTime,
                     preparationProgress: 100
