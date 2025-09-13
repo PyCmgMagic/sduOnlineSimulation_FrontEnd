@@ -205,9 +205,21 @@ export class FrontEndGamePop extends Phaser.Scene {
         this.content.setVisible(false);
         this.targetText.setVisible(true);
         
-        let targetContent = '完成以下前端技术的学习目标(根据难度随机产生)：\n\n';
+        // 根据技术栈类型动态设置目标内容和颜色名称
+        const isMobileTechStack = (window as any).useMobileTechStack;
+        const targetContent = isMobileTechStack ? 
+            '完成以下移动端技术的学习目标(根据难度随机产生)：\n\n' :
+            '完成以下前端技术的学习目标(根据难度随机产生)：\n\n';
         
-        const colorNames: { [color: number]: string } = {
+        const colorNames: { [color: number]: string } = isMobileTechStack ? {
+            0xFFB366: 'Java（橙色）',
+            0xFFD93D: 'Kotlin（黄色）',
+            0xFF6B9D: 'Dart（粉色）',
+            0x90EE90: 'Flutter（绿色）',
+            0xFF7F7F: '性能优化（红色）',
+            0x87CEEB: 'Swift（蓝色）',
+            0xDDA0DD: '页面美化（淡紫色）'
+        } : {
             0xFFB366: 'HTML（橙色）',
             0xFFD93D: 'CSS（黄色）',
             0xFF6B9D: 'JavaScript（粉色）',
@@ -217,15 +229,17 @@ export class FrontEndGamePop extends Phaser.Scene {
             0xDDA0DD: '页面美化（淡紫色）'
         };
         
+        let finalTargetContent = targetContent;
+        
         for (const [color, target] of Object.entries(this.gameTargets)) {
             const colorNum = parseInt(color);
             const colorName = colorNames[colorNum] || `颜色${colorNum}`;
-            targetContent += `${colorName}: 消除 ${target * 5} 个方块\n`;
+            finalTargetContent += `${colorName}: 消除 ${target * 5} 个方块\n`;
         }
         
-        targetContent += '\n提示：每消除5个相同颜色的方块算作完成1组目标！';
+        finalTargetContent += '\n提示：每消除5个相同颜色的方块算作完成1组目标！';
         
-        this.targetText.setText(targetContent);
+        this.targetText.setText(finalTargetContent);
     }
     
     /**

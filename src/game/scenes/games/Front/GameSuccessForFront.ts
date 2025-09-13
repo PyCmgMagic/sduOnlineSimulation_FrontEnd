@@ -147,7 +147,17 @@ export class GameSuccessForFront extends Scene {
             this.resultContainer.add(progressTitle);
             yOffset += 30;
             
-            const colorNames: { [color: number]: string } = {
+            // 根据技术栈类型动态设置颜色名称
+            const isMobileTechStack = (window as any).useMobileTechStack;
+            const colorNames: { [color: number]: string } = isMobileTechStack ? {
+                0xFFB366: 'Java',
+                0xFFD93D: 'Kotlin',
+                0xFF6B9D: 'Dart',
+                0x90EE90: 'Flutter',
+                0xFF7F7F: '性能优化',
+                0x87CEEB: 'Swift',
+                0xDDA0DD: '页面美化'
+            } : {
                 0xFFB366: 'HTML',
                 0xFFD93D: 'CSS',
                 0xFF6B9D: 'JavaScript',
@@ -234,8 +244,10 @@ export class GameSuccessForFront extends Scene {
         // 计算最终评分
         const finalScore = Math.round((this.gameResult.completionRate + this.gameResult.scoreRate) * 50);
 
-        // 标记前端开发任务为完成状态
-        const task = this.currentOrder.items.find(item => item.item.id === 'frontend_dev');
+        // 根据技术栈类型标记对应任务为完成状态
+        const isMobileTechStack = (window as any).useMobileTechStack;
+        const taskId = isMobileTechStack ? 'mobile_dev' : 'frontend_dev';
+        const task = this.currentOrder.items.find(item => item.item.id === taskId);
         if (task) {
             task.status = 'completed';
             console.log(`任务 ${task.item.name} 已标记为完成，评分: ${finalScore}`);
@@ -260,11 +272,11 @@ export class GameSuccessForFront extends Scene {
                 };
 
                 await GameApiService.updateGameStatus(orderId, updateData);
-                console.log('✅ 前端游戏状态同步成功');
+                console.log(`✅ ${isMobileTechStack ? '移动端' : '前端'}游戏状态同步成功`);
                 CommonFunction.showToast(this, '进度同步成功！', 1500, 'success');
 
             } catch (error) {
-                console.warn('⚠️ 前端游戏状态同步失败:', error);
+                console.warn(`⚠️ ${isMobileTechStack ? '移动端' : '前端'}游戏状态同步失败:`, error);
                 CommonFunction.showToast(this, '进度同步失败，但游戏继续', 2000, 'warning');
             }
         }
