@@ -92,18 +92,16 @@ export class GameSuccessForProduct extends Scene {
                 task.status = 'completed';
                 const finalScore = this.calculateExpressiveness();
                 console.log(`任务 ${task.item.name} 已标记为完成，评分: ${finalScore}`);
-
+                this.currentOrder.rate += finalScore * task.item.difficulty;
                 // 调用API更新游戏状态
                 try {
                     CommonFunction.showToast(this, '正在同步游戏进度...', 1500, 'info');
-
                     const orderId = parseInt(this.currentOrder.id) || 1;
-
                     const updateData = {
                         items: JSON.stringify([{
                             item: task.item,
                             status: 'completed',
-                            difficulty: task.difficulty || 1,
+                            difficulty: task.item.difficulty || 1,
                             score: finalScore
                         }]),
                         status: 'in_progress',

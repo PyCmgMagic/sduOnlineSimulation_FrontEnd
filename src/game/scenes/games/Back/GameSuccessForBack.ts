@@ -64,7 +64,8 @@ export class GameSuccessForBack extends Phaser.Scene {
                 task.status = 'completed';
                 const finalScore = this.calculateExpressiveness();
                 console.log(`任务 ${task.item.name} 已标记为完成，评分: ${finalScore}`);
-
+                const backendTask = this.currentOrder.items.find(item => item.item.id === 'backend_dev');
+                this.currentOrder.rate += finalScore * (backendTask?.item?.difficulty ?? 1);
                 // 调用API更新游戏状态
                 try {
                     CommonFunction.showToast(this, '正在同步游戏进度...', 1500, 'info');
@@ -75,7 +76,7 @@ export class GameSuccessForBack extends Phaser.Scene {
                         items: JSON.stringify([{
                             item: task.item,
                             status: 'completed',
-                            difficulty: task.difficulty || 1,
+                            difficulty: task.item.difficulty || 1,
                             score: finalScore
                         }]),
                         status: 'in_progress',

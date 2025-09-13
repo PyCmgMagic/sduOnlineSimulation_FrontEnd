@@ -92,7 +92,7 @@ export class ProductGame extends Scene
         // 初始化不可变量
         this.FRUITS_TYPES = FRUITS_TYPES;
         this.levelScoreTable = levelScoreTable;
-        this.PROPERTY = ProductGameProperties[this.currentOrder.difficulty];
+        this.PROPERTY = ProductGameProperties[this.currentOrder.items.find(item => item.item.id === 'product_design')?.item.difficulty || 1];
         
         // 提取游戏属性
         this.DIFFICULTY = this.PROPERTY.DIFFICULTY;

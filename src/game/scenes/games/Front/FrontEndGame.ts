@@ -131,7 +131,7 @@ export class FrontEndGame extends Scene {
         // 难度1: 1050ms, 难度10: 250ms
         const speedFactor = 100;
         const minInterval = 250;
-        const difficulty = Math.max(1, Math.min(10, this.currentOrder.difficulty));
+        const difficulty = Math.max(1, Math.min(10, this.currentOrder.items.find(item => item.item.id === 'frontend_dev')?.item.difficulty || 1));
         this.initialDropInterval = Math.max(minInterval, baseInterval - (difficulty * speedFactor));
         this.dropInterval = this.initialDropInterval;
 
@@ -154,7 +154,7 @@ export class FrontEndGame extends Scene {
 
     private createGameUI(): void {
         this.scoreText = this.add.text(595, 130, '✨ 分数: 0', { fontSize: '22px', color: '#B8860B', fontFamily: '"Comic Sans MS", cursive' });
-        this.levelText = this.add.text(595, 160, '🌟 难度 等级: '+ this.currentOrder.difficulty, { fontSize: '22px', color: '#CD853F', fontFamily: '"Comic Sans MS", cursive' });
+        this.levelText = this.add.text(595, 160, '🌟 难度 等级: '+ this.currentOrder.items.find(item => item.item.id === 'frontend_dev')?.item.difficulty, { fontSize: '22px', color: '#CD853F', fontFamily: '"Comic Sans MS", cursive' });
         this.linesText = this.add.text(595, 190, '🎯 消除: 0行', { fontSize: '22px', color: '#D2691E', fontFamily: '"Comic Sans MS", cursive' });
         this.timeText = this.add.text(595, 220, '⏱️ 时间: 00:00', { fontSize: '22px', color: '#8B4513', fontFamily: '"Comic Sans MS", cursive' });
         this.heldPieceGraphics = this.add.graphics();

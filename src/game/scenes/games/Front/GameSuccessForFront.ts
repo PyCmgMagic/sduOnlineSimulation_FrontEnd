@@ -243,7 +243,9 @@ export class GameSuccessForFront extends Scene {
     private async returnToMainMenu(): Promise<void> {
         // 计算最终评分
         const finalScore = Math.round((this.gameResult.completionRate + this.gameResult.scoreRate) * 50);
-
+        console.log(`最终分数: ${this.gameResult.scoreRate}`);
+        const frontendTask = this.currentOrder.items.find(item => item.item.id === 'frontend_dev');
+        this.currentOrder.rate += this.gameResult.scoreRate * (frontendTask?.item?.difficulty ?? 1);
         // 根据技术栈类型标记对应任务为完成状态
         const isMobileTechStack = (window as any).useMobileTechStack;
         const taskId = isMobileTechStack ? 'mobile_dev' : 'frontend_dev';

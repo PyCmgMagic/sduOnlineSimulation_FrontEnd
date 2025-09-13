@@ -11,18 +11,32 @@ export interface MenuItem {
     id: string;
     name: string;
     price: number;
+    difficulty: number;
     description: string;
+    category: string;
     icon: string;
-    preparationTime: number; // 制作时间（秒）
 }
-
 // 定义顾客订单接口
 export interface CustomerOrder {
     id: string;
     customerId: string;
     customerName: string;
     items: { item: MenuItem; quantity: number; status: 'pending' | 'completed' }[];
+    /**
+     *             item: {
+                id: apiItem.item.id,
+                name: apiItem.item.name,
+                description: apiItem.item.description,
+                price: Math.floor(apiOrder.price / apiOrder.items.length), // 平均分配价格
+                category: this.getCategoryByItemId(apiItem.item.id),
+                icon: this.getIconByItemId(apiItem.item.id)
+            },
+            quantity: 1,
+            status: apiItem.status === 'pending' ? 'pending' as const : 'completed' as const,
+            difficulty: apiItem.difficulty
+     */
     total: number;
+    rate: number; // 评价比率
     status: 'waiting' | 'preparing' | 'ready' | 'served' | 'expired';
     orderTime: Date;
     ddl: number; // 截止日期 (剩余天数)
@@ -147,11 +161,11 @@ export class Game extends Scene
 
     private initializeMenuItems(): void {
         this.menuItems = [
-            { id: 'product_design', name: '产品设计', price: 1000, description: '定义需求和功能', icon: '📝', preparationTime: 5 },
-            { id: 'visual_design', name: '视觉设计', price: 800, description: '设计UI和视觉稿', icon: '🎨', preparationTime: 4 },
-            { id: 'frontend_dev', name: '前端开发', price: 1500, description: '实现用户界面', icon: '💻', preparationTime: 8 },
-            { id: 'backend_dev', name: '后端开发', price: 1500, description: '开发服务器和数据库', icon: '⚙️', preparationTime: 8 },
-            { id: 'mobile_dev', name: '移动端开发', price: 1400, description: '适配主流分辨率与刘海屏', icon: '📱', preparationTime: 7 }
+            { id: 'product_design', name: '产品设计', price: 1000, description: '定义需求和功能', icon: '📝', difficulty: Math.floor(Math.random() * 7) + 1 || 1, category: 'product_design', },
+            { id: 'visual_design', name: '视觉设计', price: 800, description: '设计UI和视觉稿', icon: '🎨',  difficulty: Math.floor(Math.random() * 10) + 1 || 1, category: 'visual_design', },
+            { id: 'frontend_dev', name: '前端开发', price: 1500, description: '实现用户界面', icon: '💻',  difficulty: Math.floor(Math.random() * 10) + 1 || 1, category: 'frontend_dev', },
+            { id: 'backend_dev', name: '后端开发', price: 1500, description: '开发服务器和数据库', icon: '⚙️',  difficulty: Math.floor(Math.random() * 10) + 1||1, category: 'backend_dev', },
+            { id: 'mobile_dev', name: '移动端开发', price: 1400, description: '适配主流分辨率与刘海屏', icon: '📱',  difficulty: Math.floor(Math.random() * 10) + 1 || 1, category: 'mobile_dev', }
         ];
     }
 
@@ -279,6 +293,7 @@ export class Game extends Scene
             item: {
                 id: apiItem.item.id,
                 name: apiItem.item.name,
+                difficulty: apiItem.difficulty,
                 description: apiItem.item.description,
                 price: Math.floor(apiOrder.price / apiOrder.items.length), // 平均分配价格
                 category: this.getCategoryByItemId(apiItem.item.id),
@@ -286,7 +301,6 @@ export class Game extends Scene
             },
             quantity: 1,
             status: apiItem.status === 'pending' ? 'pending' as const : 'completed' as const,
-            difficulty: apiItem.difficulty
         }));
 
         // 创建游戏订单
@@ -296,6 +310,7 @@ export class Game extends Scene
             customerName: apiOrder.customerName,
             items: orderItems,
             total: apiOrder.price,
+            rate:1,
             status: this.convertApiStatus(apiOrder.status),
             orderTime: new Date(apiOrder.orderTime),
             ddl: Math.max(1, Math.floor(apiOrder.totalDevTime / 24) || 7), // 转换为天数，默认7天
@@ -446,9 +461,13 @@ export class Game extends Scene
 
         order.status = 'served';
         CommonFunction.showToast(this, `项目 "${order.customerName}" 成功交付!`, 2500, 'success');
-
+        const totalDiffs = orderToComplete.items.map(item => item.item.difficulty).reduce((acc, cur) => acc + cur, 0);
+        const finalRate = orderToComplete.rate / totalDiffs;
         const ddlBonus = Math.max(0, order.ddl) * 50;
-        const finalPayment = order.total + ddlBonus;
+        console.log(orderToComplete.rate)
+        console.log(orderToComplete.items.length)
+        console.log("最终比率**********:",finalRate)
+        const finalPayment = Number(order.total * finalRate);
         console.log(`项目 ${order.id} 完成. 基础预算: ${order.total}, DDL 奖励: ${ddlBonus}, 总计: ${finalPayment}`);
 
         this.gameScore += finalPayment;
@@ -470,7 +489,7 @@ export class Game extends Scene
                 const updateData = {
                     items: JSON.stringify(orderToComplete.items),
                     total: finalPayment,
-                    status: 'completed',
+                    status: 'finish',
                     orderTime: formatIsoLocal(new Date()),
                     totalDevTime: order.totalDevTime,
                     preparationProgress: 100
@@ -691,12 +710,11 @@ export class Game extends Scene
         const orderItems: { item: MenuItem; quantity: number; status: 'pending' | 'completed' }[] = [];
         let totalOrderPrice = 0;
         let totalDevTime = 0;
-
         this.menuItems.forEach(item => {
             const quantity = 1;
             orderItems.push({ item: item, quantity: quantity, status: 'pending' });
             totalOrderPrice += item.price * quantity;
-            totalDevTime += item.preparationTime * quantity;
+            totalDevTime += 1 * quantity;
         });
 
         const ddl = totalDevTime + Math.floor(Math.random() * 5) + 3;

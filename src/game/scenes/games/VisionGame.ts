@@ -598,6 +598,7 @@ export class VisionGame extends Scene
         CommonFunction.createButton(this, this.cameras.main.centerX, this.cameras.main.centerY + 20,"button-normal", "button-pressed", "确定", 11, () => {
             console.log('视觉设计完成，返回开发中心');
             const task = this.currentOrder.items.find(item => item.item.id === 'visual_design');
+            this.currentOrder.rate = task?.item.difficulty || 1;
             if (task) {
                 task.status = 'completed';
                 console.log(`任务 ${task.item.name} 已标记为完成`);
