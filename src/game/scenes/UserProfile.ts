@@ -1,4 +1,5 @@
 import { Scene, GameObjects } from 'phaser';
+import GameApiService from '../../utils/gameApi';
 
 interface UserInfo {
     id: number;
@@ -22,29 +23,80 @@ export class UserProfile extends Scene {
     }
 
     init(data?: { parentScene?: string }) {
-        // 获取用户信息
-        this.loadUserInfo();
+        // 异步获取最新用户信息
+        this.loadUserInfoFromServer();
     }
 
     create() {
         // 创建遮罩层
         this.createOverlay();
-        
-        // 创建个人资料弹窗
-        this.createProfileModal();
-        
+
+        // 创建个人资料弹窗（先创建基础结构）
+        this.createProfileModalBase();
+
         // 设置关闭事件
         this.setupCloseEvents();
+
+        // 如果用户信息已经加载完成，立即显示内容
+        if (this.userInfo) {
+            this.createUserInfoContent();
+            this.createActionButtons();
+        }
     }
 
-    private loadUserInfo(): void {
+    /**
+     * 从服务器获取最新用户信息
+     */
+    private async loadUserInfoFromServer(): Promise<void> {
+        try {
+            console.log('🔄 正在从服务器获取最新用户信息...');
+
+            // 首先尝试从服务器获取最新信息
+            const serverUserInfo = await GameApiService.getUserInfo();
+
+            if (serverUserInfo) {
+                // 标准化用户信息格式
+                this.userInfo = {
+                    id: serverUserInfo.id,
+                    username: serverUserInfo.username,
+                    name: serverUserInfo.name || serverUserInfo.username,
+                    email: serverUserInfo.email,
+                    avatar: serverUserInfo.avatar,
+                    coins: serverUserInfo.coins || 0,
+                    maxCoins: serverUserInfo.maxCoins || 0,
+                    sduid: serverUserInfo.sduid,
+                    createdAt: serverUserInfo.createdAt
+                };
+
+                // 更新本地存储
+                localStorage.setItem('userInfo', JSON.stringify(this.userInfo));
+                console.log('✅ 用户信息已从服务器更新:', this.userInfo);
+
+                // 如果界面已经创建，重新创建用户信息内容
+                if (this.modal) {
+                    this.refreshUserInfoDisplay();
+                }
+            } else {
+                throw new Error('服务器返回空数据');
+            }
+        } catch (error) {
+            console.warn('⚠️ 从服务器获取用户信息失败，使用本地缓存:', error);
+            // 如果服务器获取失败，回退到本地缓存
+            this.loadUserInfoFromCache();
+        }
+    }
+
+    /**
+     * 从本地缓存加载用户信息（回退方案）
+     */
+    private loadUserInfoFromCache(): void {
         try {
             const userInfoStr = localStorage.getItem('userInfo');
             if (userInfoStr) {
                 this.userInfo = JSON.parse(userInfoStr);
-                console.log('👤 User info loaded:', this.userInfo);
+                console.log('👤 使用本地缓存的用户信息:', this.userInfo);
             } else {
-                console.warn('⚠️ No user info found in localStorage');
+                console.warn('⚠️ 本地也没有用户信息，使用默认信息');
                 // 使用默认信息
                 this.userInfo = {
                     id: 0,
@@ -56,7 +108,7 @@ export class UserProfile extends Scene {
                 };
             }
         } catch (error) {
-            console.error('❌ Failed to load user info:', error);
+            console.error('❌ 加载本地用户信息失败:', error);
             this.userInfo = null;
         }
     }
@@ -74,10 +126,10 @@ export class UserProfile extends Scene {
         });
     }
 
-    private createProfileModal(): void {
+    private createProfileModalBase(): void {
         const centerX = this.cameras.main.centerX;
         const centerY = this.cameras.main.centerY;
-        
+
         // 创建主容器
         this.modal = this.add.container(centerX, centerY);
         this.modal.setDepth(101);
@@ -103,11 +155,14 @@ export class UserProfile extends Scene {
         // 创建关闭按钮
         this.createCloseButton();
 
-        // 创建用户信息内容
-        this.createUserInfoContent();
-
-        // 创建操作按钮
-        this.createActionButtons();
+        // 显示加载提示
+        const loadingText = this.add.text(0, 0, '正在加载用户信息...', {
+            fontSize: '16px',
+            color: '#666666',
+            fontFamily: '微软雅黑, Arial'
+        });
+        loadingText.setOrigin(0.5);
+        this.modal.add(loadingText);
 
         // 添加入场动画
         this.modal.setScale(0);
@@ -154,6 +209,34 @@ export class UserProfile extends Scene {
         });
         
         this.modal?.add(closeButton);
+    }
+
+    /**
+     * 刷新用户信息显示
+     */
+    private refreshUserInfoDisplay(): void {
+        if (!this.modal) return;
+
+        // 移除旧的用户信息内容（保留背景、标题、关闭按钮）
+        const children = this.modal.list.slice(); // 创建副本避免修改时的问题
+        children.forEach((child: any) => {
+            // 检查是否是关闭按钮（位置在右上角）
+            const isCloseButton = child.type === 'Container' && child.x > 200 && child.y < -150;
+
+            // 移除用户信息相关的元素和加载提示，但保留背景、标题、关闭按钮
+            if (!isCloseButton && (child.type === 'Container' || (child.type === 'Text' && child.text &&
+                (child.text.includes('用户名') || child.text.includes('姓名') ||
+                 child.text.includes('邮箱') || child.text.includes('金币') ||
+                 child.text.includes('注册时间') || child.text.includes('编辑资料') ||
+                 child.text.includes('退出登录') || child.text.includes('正在加载'))))) {
+                this.modal?.remove(child);
+                child.destroy();
+            }
+        });
+
+        // 重新创建用户信息内容和操作按钮
+        this.createUserInfoContent();
+        this.createActionButtons();
     }
 
     private createUserInfoContent(): void {

@@ -51,7 +51,7 @@ export class Game extends Scene
 
     // Game Constants
     private readonly MAX_CUSTOMERS: number = 2;
-    private readonly CUSTOMER_SPAWN_DELAY: number = 4000; // ms
+    private readonly CUSTOMER_SPAWN_DELAY: number = 5000; // ms (5秒间隔)
     private readonly DAY_DURATION: number = 5000; // ms
     private readonly CUSTOMER_QUEUE_START_X: number = 700;
     private readonly CUSTOMER_QUEUE_SPACING: number = 220;
@@ -81,6 +81,7 @@ export class Game extends Scene
     // UI Elements
     private ordersPanel: GameObjects.Container;
     private scoreDisplay: GameObjects.Text;
+    private businessButton: GameObjects.Container | null = null;
 
     // Data Pools
     private customerNames: string[] = [
@@ -126,7 +127,7 @@ export class Game extends Scene
         }
 
         // Add main 'Start Business' button
-        CommonFunction.createButton(
+        this.businessButton = CommonFunction.createButton(
             this,
             this.cameras.main.width - 150,
             this.cameras.main.height - 50,
@@ -197,6 +198,20 @@ export class Game extends Scene
             stroke: '#FFFFFF',
             strokeThickness: 2
         }).setDepth(200);
+
+        // 添加返回首页按钮
+        CommonFunction.createButton(
+            this,
+            80, // 左上角位置
+            70,
+            'button-normal',
+            'button-pressed',
+            '🏠 返回首页',
+            10,
+            () => this.returnToMainMenu(),
+            true,
+            0.7
+        );
     }
 
     private createOrdersPanel(): void {
@@ -353,12 +368,15 @@ export class Game extends Scene
         this.registry.set('customerOrders', []);
         this.registry.set('customers', []);
 
+        // 只清理订单项，保留背景和标题
         if (this.ordersPanel) {
-            this.ordersPanel.removeAll(true);
+            this.clearOrderItems();
         }
-        this.updateOrdersDisplay?.();
 
         CommonFunction.showToast(this, '项目启动！开始接收需求...', 2000, 'success');
+
+        // 更新按钮状态为"营业中"
+        this.updateBusinessButtonState(true);
 
         // 如果启用API，调用begin接口
         if (this.isApiEnabled) {
@@ -374,10 +392,15 @@ export class Game extends Scene
                     this.customerOrders.push(apiOrder);
                     console.log('📋 使用API订单数据:', apiOrder);
 
+                    // 为API订单创建对应的顾客
+                    this.createCustomerForApiOrder(apiOrder);
+
                     // 更新UI显示
                     this.updateOrdersDisplay();
-                    // API模式下不启动定时器，只使用API返回的订单
-                    return; // 使用API数据，不再生成本地订单
+
+                    // API模式下也启动定时器，允许生成额外的本地订单
+                    this.startTimers();
+                    return; // 使用API数据作为第一个订单，后续可以生成本地订单
                 }
             } catch (error) {
                 console.warn('⚠️ API调用失败，使用离线模式:', error);
@@ -485,8 +508,63 @@ export class Game extends Scene
 
     // --- CUSTOMER MANAGEMENT ---
 
+    /**
+     * 为API订单创建对应的顾客
+     */
+    private createCustomerForApiOrder(order: CustomerOrder): void {
+        const customerId = order.customerId;
+        const customerName = order.customerName;
+
+        // 新顾客排在队列的最右侧（最后面）
+        const newCustomerIndex = this.customers.length;
+        const newQueuePosition = newCustomerIndex;
+        const targetX = this.CUSTOMER_QUEUE_START_X + newQueuePosition * this.CUSTOMER_QUEUE_SPACING;
+        const startX = this.cameras.main.width + 100; // 从屏幕右侧开始
+
+        const customerSprite = this.add.sprite(startX, this.CUSTOMER_Y_POSITION, 'customer1', 0);
+        // 由于customer1的尺寸是1080x1920，需要大幅缩小
+        customerSprite.setScale(0.22).setDepth(8);
+
+        const customer: Customer = {
+            id: customerId,
+            name: customerName,
+            sprite: customerSprite,
+            order: order,
+            position: { x: targetX, y: this.CUSTOMER_Y_POSITION },
+            queuePosition: newQueuePosition,
+            isActive: true,
+            mood: 'neutral'
+        };
+
+        this.customers.push(customer);
+
+        CommonFunction.showToast(this, `新需求来自: ${customerName}`, 1500, 'info');
+
+        customerSprite.play('customer1-walk-left');
+        this.tweens.add({
+            targets: customerSprite,
+            x: targetX,
+            duration: 5000,
+            ease: 'Linear',
+            onComplete: () => {
+                customerSprite.stop();
+                customerSprite.play('customer1-idle');
+                // 动画播放完成后只显示该顾客的订单内容
+                this.addSingleOrderDisplay(order);
+            }
+        });
+    }
+
     private spawnCustomer(): void {
-        if (this.customers.length >= this.MAX_CUSTOMERS) return;
+        // 检查活跃订单数量（waiting 或 preparing 状态的订单）
+        const activeOrders = this.customerOrders.filter(
+            order => order.status === 'waiting' || order.status === 'preparing'
+        );
+
+        if (activeOrders.length >= this.MAX_CUSTOMERS) {
+            console.log(`📋 当前有 ${activeOrders.length} 个活跃订单，暂停生成新订单`);
+            return;
+        }
 
         // 新顾客排在队列的最右侧（最后面）
         const newCustomerIndex = this.customers.length;
@@ -660,13 +738,20 @@ private addSingleOrderDisplay(order: CustomerOrder): void {
     this.createOrderDisplay(order, orderY);
 }
 
-private updateOrdersDisplay(): void {
-    // 首先，移除所有旧的订单卡片UI
+/**
+ * 清理订单项，保留背景和标题
+ */
+private clearOrderItems(): void {
     this.ordersPanel.each((child: any) => {
         if (child.isOrderItem) {
             child.destroy();
         }
     });
+}
+
+private updateOrdersDisplay(): void {
+    // 首先，移除所有旧的订单卡片UI
+    this.clearOrderItems();
 
     // 筛选出所有状态为 'waiting' 或 'preparing' 的活动订单
     const ordersToDisplay = this.customerOrders.filter(
@@ -705,7 +790,7 @@ private updateOrdersDisplay(): void {
 
         const prepareButton = CommonFunction.createButton(
             this, 0, 115, 'button-normal', 'button-pressed',
-            order.status === 'preparing' ? '开发中...' : '开始开发',
+            '开发',
             1, () => this.startPreparation(order.id), false
         );
         prepareButton.setScale(0.6);
@@ -720,6 +805,62 @@ private updateOrdersDisplay(): void {
 
     private updateScoreDisplay(): void {
         this.scoreDisplay.setText(`💰 学线币: ¥${this.gameScore}`);
+    }
+
+    /**
+     * 更新营业按钮状态
+     * @param isRunning 是否正在营业
+     */
+    private updateBusinessButtonState(isRunning: boolean): void {
+        if (!this.businessButton) return;
+
+        // 查找按钮中的文本元素
+        const textElement = this.businessButton.list.find((child: any) =>
+            child.type === 'Text'
+        ) as GameObjects.Text;
+
+        if (textElement) {
+            textElement.setText(isRunning ? '🏪 营业中' : '🎮 开始营业');
+        }
+
+        // 如果正在营业，禁用按钮点击
+        if (isRunning) {
+            this.businessButton.removeInteractive();
+        } else {
+            this.businessButton.setInteractive();
+        }
+    }
+
+    /**
+     * 返回主菜单
+     */
+    private returnToMainMenu(): void {
+        // 显示确认对话框
+        const confirmReturn = confirm('确定要返回首页吗？当前游戏进度将会丢失。');
+
+        if (confirmReturn) {
+            // 停止所有定时器
+            this.stopTimers();
+
+            // 清理游戏状态
+            this.isGameRunning = false;
+            this.customerOrders = [];
+            this.customers = [];
+
+            // 清理保存的游戏状态
+            this.registry.set('gameStateSaved', false);
+            this.registry.set('customerOrders', []);
+            this.registry.set('customers', []);
+            this.registry.set('isGameRunning', false);
+
+            // 显示提示信息
+            CommonFunction.showToast(this, '正在返回首页...', 1500, 'info');
+
+            // 延迟跳转，让用户看到提示信息
+            this.time.delayedCall(1000, () => {
+                this.scene.start('MainMenu');
+            });
+        }
     }
 
     // --- TIMER & PATIENCE MANAGEMENT ---
