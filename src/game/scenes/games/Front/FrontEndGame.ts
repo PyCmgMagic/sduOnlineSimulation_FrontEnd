@@ -464,6 +464,16 @@ private createHoldButtonArea(): void {
         this.input.keyboard.on('keydown-UP', () => this.rotatePiece());
         this.input.keyboard.on('keydown-SPACE', () => this.togglePause());
         this.input.keyboard.on('keydown-C', () => this.holdPiece());
+        
+///
+        if (!this.input.keyboard) return;
+        this.input.keyboard.on('keydown-A', () => this.movePiece(-1, 0));
+        this.input.keyboard.on('keydown-D', () => this.movePiece(1, 0));
+        this.input.keyboard.on('keydown-S', () => {
+            this.movePiece(0, 1);
+            this.updateScore(1);
+        });
+        this.input.keyboard.on('keydown-W', () => this.rotatePiece());
     }
 
     private holdPiece(): void {
