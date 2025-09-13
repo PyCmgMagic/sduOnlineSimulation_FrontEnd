@@ -204,9 +204,9 @@ export class Game extends Scene
             this,
             80, // 左上角位置
             70,
-            'button-normal',
-            'button-pressed',
-            '🏠 返回首页',
+            'return-button',
+            'return-button',
+            '',
             10,
             () => this.returnToMainMenu(),
             true,
