@@ -12,6 +12,7 @@ export class GameEntrance extends Scene{
     private progressBarUpdater: (progress: number) => void;
     private progressBarVisibleSetter: (visible: boolean) => void;
     private progressText: GameObjects.Text;
+    private progressBarContainer: GameObjects.Container;
     
     private currentOrder: CustomerOrder;
     
@@ -82,19 +83,27 @@ export class GameEntrance extends Scene{
             this.submitButton.setVisible(true);
             this.backButton.setVisible(false); // Hide back button to encourage submission
             this.progressBarVisibleSetter(false);
+            
+            // 隐藏进度条和进度文本
+            this.progressText.setVisible(false);
+            this.progressBarContainer.setVisible(false);
 
             // 显示完成提示
             CommonFunction.showToast(this, '🎉 所有任务已完成！可以提交项目了', 3000, 'success');
         } else {
             this.submitButton.setVisible(false);
+            // 确保进度条和文本在未完成时可见
+            this.progressText.setVisible(true);
+            this.progressBarContainer.setVisible(true);
         }
     }
     private createOperateButtons() {
         // Add a back button
-        this.backButton = this.add.container(190, 630);
-        const backImage = this.add.image(0, 0, 'game-entrance-arrow');
-        const text_back = this.add.text(-15, -20, "返回", {
-            fontSize: 32,
+        this.backButton = this.add.container(150, 700);
+        const backImage = this.add.image(25, 10, 'game-entrance-arrow-w');
+        backImage.setScale(2);
+        const text_back = this.add.text(0, 0, "返回", {
+            fontSize: 15,
             fontFamily: '"Comic Sans MS", "Arial Rounded MT Bold", cursive',
             color: '#ffffff',
             stroke: '#000000',
@@ -102,13 +111,13 @@ export class GameEntrance extends Scene{
         })
         backImage.setInteractive();
         backImage.on('pointerover', () => {
-            backImage.setScale(1.1)
+            backImage.setScale(2.2)
         })
         backImage.on('pointerout', () => {
             backImage.setScale(1)
         })
         backImage.on('pointerdown', () => {
-            backImage.setScale(0.8)
+            backImage.setScale(1.8)
         })
         backImage.on('pointerup', () => {
             this.scene.start("Game")
@@ -145,11 +154,21 @@ export class GameEntrance extends Scene{
         
     }
     
+    /**
+     * 创建进度条（位于右下角）
+     */
     private createProgressBar() {
+        // 获取屏幕尺寸
+        const screenWidth = this.cameras.main.width;
+        const screenHeight = this.cameras.main.height;
+        
+        // 设置进度条位置为右下角
+        const progressBarX = screenWidth - 170; // 距离右边170像素
+        const progressBarY = screenHeight - 50;  // 距离底部80像素
+        
         // Add a progress bar
-        const progressBar = CommonFunction.createProgressBar(this, 950, 630, 300, 25);
+        const progressBar = CommonFunction.createProgressBar(this, 850, 40, 300, 25);
         this.progressBarUpdater = progressBar.updateProgress;
-        this.progressBarVisibleSetter = progressBar.setVisible;
         this.progressText = this.add.text(850, 70, '进度: 0%', { fontSize: '20px', color: '#ffffff' }).setOrigin(0.5);
     }
     
@@ -269,81 +288,6 @@ export class GameEntrance extends Scene{
         }
         
     }
-    
-    /**
-     * 显示当前前端技术栈信息
-     */
-    private showTechStackInfo(): void {
-        const techStackInfo = [
-            'HTML - 网页结构标记语言',
-            'CSS - 样式表语言',
-            'JS - JavaScript编程语言',
-            'Vue - 渐进式前端框架',
-            '性能优化 - 提升应用性能',
-            'React - 用户界面库',
-            '页面美化 - 界面设计优化',
-            '增强 - 功能增强'
-        ];
-        
-        const infoText = techStackInfo.join('\n');
-        
-        // 创建弹窗背景
-        const popupBg = this.add.graphics();
-        popupBg.fillStyle(0x000000, 0.8);
-        popupBg.fillRect(0, 0, this.cameras.main.width, this.cameras.main.height);
-        
-        // 创建信息面板
-        const panelWidth = 600;
-        const panelHeight = 400;
-        const panelX = (this.cameras.main.width - panelWidth) / 2;
-        const panelY = (this.cameras.main.height - panelHeight) / 2;
-        
-        const panel = this.add.graphics();
-        panel.fillStyle(0xffffff, 0.95);
-        panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 10);
-        panel.lineStyle(3, 0x333333, 1);
-        panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 10);
-        
-        // 添加标题
-        const title = this.add.text(panelX + panelWidth / 2, panelY + 40, '前端开发技术栈', {
-            fontSize: '28px',
-            color: '#333333',
-            fontFamily: '"Comic Sans MS", cursive'
-        }).setOrigin(0.5);
-        
-        // 添加技术栈信息
-        const content = this.add.text(panelX + 50, panelY + 100, infoText, {
-            fontSize: '18px',
-            color: '#444444',
-            fontFamily: 'Arial, sans-serif',
-            lineSpacing: 10
-        });
-        
-        // 添加关闭按钮
-        const closeButton = this.add.text(panelX + panelWidth / 2, panelY + panelHeight - 50, '关闭', {
-            fontSize: '20px',
-            color: '#ffffff',
-            backgroundColor: '#007bff',
-            padding: { x: 20, y: 10 }
-        }).setOrigin(0.5).setInteractive();
-        
-        closeButton.on('pointerdown', () => {
-            popupBg.destroy();
-            panel.destroy();
-            title.destroy();
-            content.destroy();
-            closeButton.destroy();
-        });
-        
-        closeButton.on('pointerover', () => {
-            closeButton.setStyle({ backgroundColor: '#0056b3' });
-        });
-        
-        closeButton.on('pointerout', () => {
-            closeButton.setStyle({ backgroundColor: '#007bff' });
-        });
-    }
-    
     /**
      * 切换到前端技术栈
      */

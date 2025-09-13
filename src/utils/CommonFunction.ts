@@ -335,6 +335,18 @@ export class CommonFunction
      * @param fillColor - 填充色
      * @param borderColor - 边框色
      */
+    /**
+     * 创建美化的进度条
+     * @param scene - 当前场景
+     * @param x - X坐标
+     * @param y - Y坐标
+     * @param width - 宽度
+     * @param height - 高度
+     * @param bgColor - 背景颜色
+     * @param fillColor - 填充颜色
+     * @param borderColor - 边框颜色
+     * @returns 包含容器和更新函数的对象
+     */
     public static createProgressBar(
         scene: Scene,
         x: number,
@@ -347,26 +359,64 @@ export class CommonFunction
     ): { container: GameObjects.Container; updateProgress: (progress: number) => void; setVisible: (visible: boolean) => void } {
         const container = scene.add.container(x, y);
         
-        // 背景
+        // 阴影效果
+        const shadow = scene.add.graphics();
+        shadow.fillStyle(0x000000, 0.3);
+        shadow.fillRoundedRect(-width/2 + 2, -height/2 + 2, width, height, height/4);
+        
+        // 背景（带圆角）
         const bg = scene.add.graphics();
         bg.fillStyle(bgColor);
-        bg.fillRect(-width/2, -height/2, width, height);
+        bg.fillRoundedRect(-width/2, -height/2, width, height, height/4);
         
-        // 边框
-        const border = scene.add.graphics();
-        border.lineStyle(2, borderColor);
-        border.strokeRect(-width/2, -height/2, width, height);
+        // 内部阴影效果
+        const innerShadow = scene.add.graphics();
+        innerShadow.fillStyle(0x000000, 0.2);
+        innerShadow.fillRoundedRect(-width/2 + 1, -height/2 + 1, width - 2, 2, 1);
         
         // 进度条
         const progressBar = scene.add.graphics();
         
-        container.add([bg, progressBar, border]);
+        // 高光效果
+        const highlight = scene.add.graphics();
+        
+        // 边框（带圆角）
+        const border = scene.add.graphics();
+        border.lineStyle(2, borderColor, 0.8);
+        border.strokeRoundedRect(-width/2, -height/2, width, height, height/4);
+        
+        container.add([shadow, bg, innerShadow, progressBar, highlight, border]);
         
         const updateProgress = (progress: number) => {
             progress = Phaser.Math.Clamp(progress, 0, 1);
+            
+            // 清除之前的绘制
             progressBar.clear();
-            progressBar.fillStyle(fillColor);
-            progressBar.fillRect(-width/2 + 2, -height/2 + 2, (width - 4) * progress, height - 4);
+            highlight.clear();
+            
+            if (progress > 0) {
+                const progressWidth = (width - 4) * progress;
+                
+                // 渐变色进度条
+                const startColor = progress < 0.3 ? 0xff4444 : progress < 0.7 ? 0xffaa00 : 0x44ff44;
+                const endColor = progress < 0.3 ? 0xff6666 : progress < 0.7 ? 0xffcc44 : 0x66ff66;
+                
+                // 主进度条
+                progressBar.fillGradientStyle(startColor, endColor, startColor, endColor, 1);
+                progressBar.fillRoundedRect(-width/2 + 2, -height/2 + 2, progressWidth, height - 4, (height-4)/4);
+                
+                // 高光效果
+                highlight.fillStyle(0xffffff, 0.4);
+                highlight.fillRoundedRect(-width/2 + 2, -height/2 + 2, progressWidth, (height - 4) / 3, (height-4)/4);
+                
+                // 进度条动画效果
+                scene.tweens.add({
+                    targets: progressBar,
+                    alpha: { from: 0.8, to: 1 },
+                    duration: 200,
+                    ease: 'Power2'
+                });
+            }
         };
 
         const setVisible = (visible: boolean) => {
