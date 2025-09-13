@@ -1,6 +1,7 @@
 import { CustomerOrder } from "../../Game.ts";
 import { CommonFunction } from "../../../../utils/CommonFunction.ts";
 import { GameResult } from "./Types.ts";
+import GameApiService from "../../../../utils/gameApi";
 
 export class GameSuccessForBack extends Phaser.Scene {
 
@@ -55,19 +56,44 @@ export class GameSuccessForBack extends Phaser.Scene {
     }
 
     createButton() {
-        CommonFunction.createButton(this, this.cameras.main.centerX, this.cameras.main.centerY + 200, "button-normal", "button-pressed", '返回主界面', 1, () => {
+        CommonFunction.createButton(this, this.cameras.main.centerX, this.cameras.main.centerY + 200, "button-normal", "button-pressed", '返回主界面', 1, async () => {
             console.log("Player reached the stairs!");
-            {
-                const task = this.currentOrder.items.find(item => item.item.id === 'backend_dev');
-                if (task) {
-                    task.status = 'completed';
-                    console.log(`任务 ${task.item.name} 已标记为完成`);
-                    console.log(this.calculateExpressiveness());
-                    
+
+            const task = this.currentOrder.items.find(item => item.item.id === 'backend_dev');
+            if (task) {
+                task.status = 'completed';
+                const finalScore = this.calculateExpressiveness();
+                console.log(`任务 ${task.item.name} 已标记为完成，评分: ${finalScore}`);
+
+                // 调用API更新游戏状态
+                try {
+                    CommonFunction.showToast(this, '正在同步游戏进度...', 1500, 'info');
+
+                    const orderId = parseInt(this.currentOrder.id) || 1;
+
+                    const updateData = {
+                        items: JSON.stringify([{
+                            item: task.item,
+                            status: 'completed',
+                            difficulty: task.difficulty || 1,
+                            score: finalScore
+                        }]),
+                        status: 'in_progress',
+                        preparationProgress: Math.round((this.gameResult.functionCompleted / this.gameResult.totalFunction) * 100)
+                    };
+
+                    await GameApiService.updateGameStatus(orderId, updateData);
+                    console.log('✅ 后端游戏状态同步成功');
+                    CommonFunction.showToast(this, '进度同步成功！', 1500, 'success');
+
+                } catch (error) {
+                    console.warn('⚠️ 后端游戏状态同步失败:', error);
+                    CommonFunction.showToast(this, '进度同步失败，但游戏继续', 2000, 'warning');
                 }
-                this.scene.start('GameEntrance', { order: this.currentOrder });
-                this.scene.stop("BackEndGame");
             }
+
+            this.scene.start('GameEntrance', { order: this.currentOrder });
+            this.scene.stop("BackEndGame");
         })
     }
 

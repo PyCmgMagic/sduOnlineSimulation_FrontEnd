@@ -159,11 +159,12 @@ export class UserProfile extends Scene {
     private createUserInfoContent(): void {
         if (!this.userInfo) return;
 
-        const contentY = -80;
-        
+        // 调整内容Y坐标，增加与标题的距离
+        const contentY = -40;
+
         // 头像区域
         const avatarContainer = this.add.container(-150, contentY);
-        
+
         // 头像背景
         const avatarBg = this.add.graphics();
         avatarBg.fillStyle(0xe3f2fd, 1);
@@ -171,7 +172,7 @@ export class UserProfile extends Scene {
         avatarBg.fillCircle(0, 0, 40);
         avatarBg.strokeCircle(0, 0, 40);
         avatarContainer.add(avatarBg);
-        
+
         // 头像文字（如果没有头像图片）
         const avatarText = this.add.text(0, 0, this.userInfo.username?.charAt(0).toUpperCase() || '用', {
             fontSize: '32px',
@@ -181,17 +182,17 @@ export class UserProfile extends Scene {
         });
         avatarText.setOrigin(0.5);
         avatarContainer.add(avatarText);
-        
+
         this.modal?.add(avatarContainer);
 
         // 用户信息文本
         const infoContainer = this.add.container(50, contentY - 60);
-        
+
+        // 移除学号信息，只显示其他信息
         const infoItems = [
             { label: '用户名', value: this.userInfo.username || '未设置' },
             { label: '姓名', value: this.userInfo.name || '未设置' },
             { label: '邮箱', value: this.userInfo.email || '未设置' },
-            { label: '学号', value: this.userInfo.sduid || '未设置' },
             { label: '金币', value: `${this.userInfo.coins || 0}` },
             { label: '最大金币', value: `${this.userInfo.maxCoins || 0}` }
         ];
@@ -224,7 +225,7 @@ export class UserProfile extends Scene {
         // 注册时间（如果有）
         if (this.userInfo.createdAt) {
             const createTime = new Date(this.userInfo.createdAt).toLocaleDateString('zh-CN');
-            const timeText = this.add.text(0, 120, `注册时间: ${createTime}`, {
+            const timeText = this.add.text(0, 100, `注册时间: ${createTime}`, {
                 fontSize: '14px',
                 color: '#999999',
                 fontFamily: '微软雅黑, Arial'
@@ -235,7 +236,7 @@ export class UserProfile extends Scene {
     }
 
     private createActionButtons(): void {
-        const buttonY = 150;
+        const buttonY = 130;
         
         // 编辑资料按钮
         const editButton = this.add.container(-80, buttonY);

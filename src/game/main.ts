@@ -18,6 +18,9 @@ import { BackEndGame } from "./scenes/games/Back/BackEndGame.ts";
 import {GameSuccessForProduct} from "./scenes/games/Product/GameSuccessForProduct.ts";
 import { BackEndGamePop } from "./scenes/games/Back/BackEndGamePop.ts";
 import {GameSuccessForBack} from "./scenes/games/Back/GameSuccessForBack.ts";
+import ApiTestUtils from "../utils/apiTest";
+import ApiDataTestUtils from "../utils/apiDataTest";
+import RankingTestUtils from "../utils/rankingTest";
 
 //  Find out more information about the Game Config at:
 //  https://docs.phaser.io/api-documentation/typedef/types-core#gameconfig
@@ -61,6 +64,13 @@ const config: Phaser.Types.Core.GameConfig = {
 };
 
 const StartGame = (parent: string) => {
+
+    // 初始化API测试工具（仅在开发环境）
+    if (import.meta.env.DEV) {
+        ApiTestUtils.exposeToConsole();
+        ApiDataTestUtils.exposeToConsole();
+        RankingTestUtils.exposeToConsole();
+    }
 
     return new Game({ ...config, parent });
 
