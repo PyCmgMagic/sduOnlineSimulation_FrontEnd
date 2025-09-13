@@ -739,6 +739,7 @@ export class Preloader extends Scene
         this.load.image('confirm-pop-up', 'pop-up.png');
         
         // GameEntrance
+        this.load.image("game-entrance-arrow", "game-entrance/left-arrow.png");
         this.load.image('game-entrance-bg', 'game-entrance/bg.png');
         this.load.image('game-entrance-mac', 'game-entrance/mac.png');
         this.load.image('game-entrance-idea', 'game-entrance/idea.png');

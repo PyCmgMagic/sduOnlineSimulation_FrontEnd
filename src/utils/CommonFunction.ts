@@ -344,7 +344,7 @@ export class CommonFunction
         bgColor: number = 0x222222,
         fillColor: number = 0x00FF00,
         borderColor: number = 0xFFFFFF
-    ): { container: GameObjects.Container; updateProgress: (progress: number) => void } {
+    ): { container: GameObjects.Container; updateProgress: (progress: number) => void; setVisible: (visible: boolean) => void } {
         const container = scene.add.container(x, y);
         
         // 背景
@@ -368,8 +368,12 @@ export class CommonFunction
             progressBar.fillStyle(fillColor);
             progressBar.fillRect(-width/2 + 2, -height/2 + 2, (width - 4) * progress, height - 4);
         };
+
+        const setVisible = (visible: boolean) => {
+            container.setVisible(visible);
+        }
         
-        return { container, updateProgress };
+        return { container, updateProgress, setVisible };
     }
 
     /**
